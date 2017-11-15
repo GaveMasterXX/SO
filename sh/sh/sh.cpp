@@ -11,19 +11,19 @@
 
 
 
-#define MAX_PLAYER_NAME 20
+#define MAX_NAME 20
 #define MAX_GMPLAYER_LIFE 10000
 #define MAX_GMPLAYER_DAMAGE 1000
 #define MAX_GMPLATEER_CRITIC 50
 
-#define MAX_MONSTER_LIFE 1000
-#define MAX_MONSTER_DAMAGE 100
-#define MAX_MONSTER_CRITIC 10
+#define MAX_MOSNTERS 100
+#define MAX_ITEMS 1000
+#define MAX_TREASURE 1000
 
 #define MAX_CELLS 200
 #define MAX_DESCRIPTION_CELL 1000
 #define NCELLS 200
-#define MAX_LINE 100
+#define MAX_LINE 1000
 
 #define EMPTY _T( ' ' )
 
@@ -34,7 +34,7 @@ Estruturas begin
 */
 
 struct Player {
-	char namePlayer[MAX_PLAYER_NAME];
+	char namePlayer[MAX_NAME];
 	int energyPlayer;
 	int cellPlayer;
 	int itemPlayer;
@@ -42,28 +42,29 @@ struct Player {
 };
 
 struct Monster {
-	char nameMosnter;
+	char nameMosnter[MAX_NAME];
 	int lifeMonster;
 	int damageMonster;
 	int criticMonster;
 	int cellMonster;
 	int itemMonster;
 	int treasureMonster;
+	int nMonsters;
 };
 
 struct Item {
 	int CodItem;
-	char NameItem;
+	char NameItem[MAX_NAME];
 	int DamageItem;
 	int CriticItem;
 	int PositionItem;
+	int LifeItem;
 };
 
 struct Tresure {
 	int CodTresure;
-	char NameTreasure;
-	int Damagetresure;
-	int CriticTreasure;
+	char NameTreasure[MAX_NAME];
+	int Gold;
 	int PositionTresure;
 };
 
@@ -83,6 +84,9 @@ struct Cell {
 struct Map
 {
 	struct Cell cell[MAX_CELLS];
+	struct Item item[MAX_ITEMS];
+	struct Tresure treasure[MAX_TREASURE];
+
 	int nCells;
 };
 /*
@@ -93,17 +97,17 @@ void FunctionClear();
 void InsertPlayer(Player *pPlayer);/*Método que permite o utilizador inserir o seu avatar*/
 void PrintPlayer(Player *pPlayer);/*mostra os status do avatar no ecrâ*/
 
-void InicializedMonster(Monster *pMonster);
-void PrintMonster(Monster *pMonster);/*mostra os status do monstro no ecrâ*/
+void InicializeMonster(Monster monster[]);
+void PrintMonster(Monster monster[]);/*mostra os status do monstro no ecrâ*/
 
 int InitMap(Cell cells[]);
 
 void LoadMapFromFile(Map *pMap);
 void PrintMapFromFile(Map *pMap);
-void PlayerWalk(Player *pPlayer, Map *pMap, Monster *pMonster);/*método que cria o mapa do jogo*/
+void InitItemPlusTreasure(Map *pMap);
 
-void MovePlayer();/*método que permite o avatar do utilizador se mover*/
-void MoveMonster();/*Método que permite o monstro se mover pelo mapa sozinho*/
+void PlayerWalk(Player *pPlayer, Map *pMap);/*método que cria o mapa do jogo*/
+void MonstersWalk(struct Map *pMap, Monster monster[]);/*Método que permite o monstro se mover pelo mapa sozinho*/
 
 void GrabItems();/*Método que permite o jogador apanhar itens nas salas/ atualizar os status do seu avatar*/
 void FightWhithMonster();/*método que aciona a batalha entre o jogador e o monstro*/
@@ -122,9 +126,10 @@ int main()
 {
 
 	struct Player player;
-	struct Monster monster;
+	struct Monster monster[MAX_MOSNTERS];
 	struct Cell cells[MAX_CELLS];
 	struct Map map;
+
 	int nCells;
 
 	printf("--------------------------------\n");
@@ -135,13 +140,19 @@ int main()
 
 	InsertPlayer(&player);
 	PrintPlayer(&player);
+
 	LoadMapFromFile(&map);
-	PrintMapFromFile(&map);
-	while (player.cellPlayer != map.nCells) {
-		PlayerWalk(&player, &map, &monster);
-	}
-	PrintMapFromFile(&map);
+	//PrintMapFromFile(&map);
 	//map.nCells = InitMap(cells);
+	InitItemPlusTreasure(&map);
+	InicializeMonster(monster);
+	//PrintMonster(monster);
+
+	while (player.cellPlayer != map.nCells) {
+		PlayerWalk(&player, &map);
+		MonstersWalk(&map, monster);
+	}
+	
 	return 0;
 }
 
@@ -190,278 +201,479 @@ void InsertPlayer(Player *pPlayer) {
 Este Método tem como função principal mostrar os status do jogador no ecrã
 */
 void PrintPlayer(Player *pPlayer) {
+	printf("\n");
 	printf("Bem vindo Hunter %s \n", pPlayer->namePlayer);
 	printf("HP:  %d \n", pPlayer->energyPlayer);
 	printf("Items:  %d \n", pPlayer->itemPlayer);
 	printf("Room:  %d \n", pPlayer->cellPlayer);
 	printf("Treasure:  %d \n", pPlayer->treasurePlayer);
-	printf("Are you ready to Fight Bro!!");
+	printf("Estas pronto para o desafio Soldado !!!");
 
 }
 
+/*
+	Neste método são inicializados os monstros do jodo
+*/
+void InicializeMonster(Monster monster[]) {
+	int count = 0;
+	//Monstro Principal - só depois de ser derrutado é que o jogador ganha
+	monster[0].cellMonster = 13;
+	strcpy(monster[0].nameMosnter , "LUCIFER");
+	monster[0].damageMonster = 60;
+	monster[0].lifeMonster = 1000;
+	monster[0].criticMonster = 5;
+	monster[0].itemMonster = 5;
+	monster[0].treasureMonster = 5;
+	count++;
+
+	//Monstro da cell 2
+	monster[1].cellMonster = 2;
+	strcpy(monster[1].nameMosnter, "AZREL");
+	monster[1].damageMonster = 10;
+	monster[1].lifeMonster = 100;
+	monster[1].criticMonster = 1;
+	monster[1].itemMonster = 1;
+	monster[1].treasureMonster = 1;
+	count++;
+
+	//Monstro da cell 3
+	monster[2].cellMonster = 3;
+	strcpy(monster[2].nameMosnter, "HERCULES");
+	monster[2].damageMonster = 20;
+	monster[2].lifeMonster = 200;
+	monster[2].criticMonster = 2;
+	monster[2].itemMonster = 2;
+	monster[2].treasureMonster = 2;
+	count++;
+
+	//Monstro da cell 8
+	monster[3].cellMonster = 8;
+	strcpy(monster[3].nameMosnter, "JACLINE");
+	monster[3].damageMonster = 30;
+	monster[3].lifeMonster = 300;
+	monster[3].criticMonster = 3;
+	monster[3].itemMonster = 3;
+	monster[3].treasureMonster = 3;
+	count++;
+
+	//Monstro da cell 9
+	monster[4].cellMonster = 9;
+	strcpy(monster[4].nameMosnter, "BLACK MANBA");
+	monster[4].damageMonster = 40;
+	monster[4].lifeMonster = 500;
+	monster[4].criticMonster = 4;
+	monster[4].itemMonster = 4;
+	monster[4].treasureMonster = 4;
+	count++;
+
+	//Monstros lv1
+	monster[5].cellMonster = 10;
+	strcpy(monster[5].nameMosnter, "ESCLETO 1");
+	monster[5].damageMonster = 10;
+	monster[5].lifeMonster = 100;
+	monster[5].criticMonster = 1;
+	monster[5].itemMonster = 6;
+	monster[5].treasureMonster = 6;
+	count++;
+
+	//Monstros lv1
+	monster[6].cellMonster = 10;
+	strcpy(monster[6].nameMosnter, "ESCLETO 2");
+	monster[6].damageMonster = 10;
+	monster[6].lifeMonster = 100;
+	monster[6].criticMonster = 1;
+	monster[6].itemMonster = 6;
+	monster[6].treasureMonster = 6;
+	count++;
+
+
+	//Monstros lv1
+	monster[7].cellMonster = 10;
+	strcpy(monster[7].nameMosnter, "ESCLETO 3");
+	monster[7].damageMonster = 10;
+	monster[7].lifeMonster = 100;
+	monster[7].criticMonster = 1;
+	monster[7].itemMonster = 6;
+	monster[7].treasureMonster = 6;
+	count++;
+
+
+	//Monstros lv1
+	monster[8].cellMonster = 10;
+	strcpy(monster[8].nameMosnter, "ESCLETO 4");
+	monster[8].damageMonster = 10;
+	monster[8].lifeMonster = 100;
+	monster[8].criticMonster = 1;
+	monster[8].itemMonster = 6;
+	monster[8].treasureMonster = 6;
+	count++;
+
+	monster[0].nMonsters = count;
+}
+
+/*
+	Este método vai fazer o print de todos os monstros no jogo
+*/
+void PrintMonster(Monster monster[]) {
+	for (int i = 0; i < monster[0].nMonsters; i++) {
+		printf("\n");
+		printf("Monstro %s\n", monster[i].nameMosnter);
+		printf("Monstro HP: %d\n",monster[i].lifeMonster);
+		printf("Monstro ATK: %d\n",monster[i].damageMonster);
+		printf("Monstro CTRITIC: %d\n",monster[i].criticMonster);
+		printf("Monstro ROOM: %d\n", monster[i].cellMonster);
+		printf("Monstro ITEM: %d\n", monster[i].itemMonster);
+		printf("Monstro TREASURE: %d\n", monster[i].treasureMonster);
+	}
+}
+
+/*
+	Método que inicializa os items e os tesouros no jogo
+*/
+void InitItemPlusTreasure(struct Map *pMap) {
+	
+	//item 1
+	pMap->item[0].CodItem = 1;
+	pMap->item[0].PositionItem = 2;
+	strcpy(pMap->item[0].NameItem, "Wood Armor");
+	pMap->item[0].CriticItem = 0;
+	pMap->item[0].DamageItem = 0;
+	pMap->item[0].LifeItem = 0;
+
+
+	//item 2
+	pMap->item[1].CodItem = 2;
+	pMap->item[1].PositionItem = 3;
+	strcpy(pMap->item[1].NameItem, "Wood Sword");
+	pMap->item[1].CriticItem = 0;
+	pMap->item[1].DamageItem = 0;
+	pMap->item[1].LifeItem = 0;
+
+
+	//item 3
+	pMap->item[2].CodItem = 3;
+	pMap->item[2].PositionItem = 8;
+	strcpy(pMap->item[2].NameItem, "Steel Armor");
+	pMap->item[2].CriticItem = 0;
+	pMap->item[2].DamageItem = 0;
+	pMap->item[2].LifeItem = 0;
+	
+
+	//item 4
+	pMap->item[3].CodItem = 4;
+	pMap->item[3].PositionItem = 9;
+	strcpy(pMap->item[3].NameItem, "Steel Sword");
+	pMap->item[3].CriticItem = 0;
+	pMap->item[3].DamageItem = 0;
+	pMap->item[3].LifeItem = 0;
+
+
+	//item 5
+	pMap->item[4].CodItem = 5;
+	pMap->item[4].PositionItem = 13;
+	strcpy(pMap->item[4].NameItem, "Gold Armor + Sword");
+	pMap->item[4].CriticItem = 0;
+	pMap->item[4].DamageItem = 0;
+	pMap->item[4].LifeItem = 0;
+
+
+	//Tesouro 1
+	pMap->treasure[0].CodTresure = 1;
+	pMap->treasure[0].PositionTresure = 2;
+	strcpy(pMap->treasure[0].NameTreasure, "Bolsa de Moedas");
+	pMap->treasure[0].Gold = 500;
+
+	//Tesouro 2
+	pMap->treasure[1].CodTresure = 2;
+	pMap->treasure[1].PositionTresure = 3;
+	strcpy(pMap->treasure[1].NameTreasure, "Bau Pequeno");
+	pMap->treasure[1].Gold = 500;
+
+	//Tesouro 3
+	pMap->treasure[2].CodTresure = 3;
+	pMap->treasure[2].PositionTresure = 8;
+	strcpy(pMap->treasure[2].NameTreasure, "Bau Médio");
+	pMap->treasure[2].Gold = 500;
+
+	//Tesouro 4
+	pMap->treasure[3].CodTresure = 4;
+	pMap->treasure[3].PositionTresure = 9;
+	strcpy(pMap->treasure[3].NameTreasure, "Bau Grande");
+	pMap->treasure[3].Gold = 500;
+
+	//Tesouro 5
+	pMap->treasure[4].CodTresure = 5;
+	pMap->treasure[4].PositionTresure = 13;
+	strcpy(pMap->treasure[4].NameTreasure, "Cofre Grande");
+	pMap->treasure[4].Gold = 500;
+
+}
+/*
+	Este método serve inicia o mapa numa primeira versão antes de implementar a leitura do mapa apartir de um ficheiro
+*/
 int InitMap(Cell cells[]) {
 
 	//cell 0 
-	cells[0].north = 2;
+	cells[0].north = 1;
 	cells[0].south = -1;
-	cells[0].west = -1;
-	cells[0].east = 1;
+	cells[0].west = 20;
+	cells[0].east = 19;
 	cells[0].up = -1;
 	cells[0].down = -1;
-	strcpy(cells[0].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[0].descriptionCell, "Bem vido à Vila Sunshine, desejamos lhe a maior sorte para a sua missão!");
 	cells[0].treasureCell = -1;
 	cells[0].itemCell = -1;
 
 	//cell 1 
-	cells[1].north = -1;
-	cells[1].south = 2;
-	cells[1].west = 0;
-	cells[1].east = 3;
-	cells[1].up = -1;
+	cells[1].north = 4;
+	cells[1].south = 0;
+	cells[1].west = 3;
+	cells[1].east = -1;
+	cells[1].up = 2;
 	cells[1].down = -1;
-	strcpy(cells[1].descriptionCell, "Please came back!!!!");
+	strcpy(cells[1].descriptionCell, "Neste mumento soldado encontraste entre duas arenas, entra lá e descobre o que se passa!");
 	cells[1].treasureCell = -1;
 	cells[1].itemCell = -1;
 
 	//cell 2 
-	cells[2].north = 2;
+	cells[2].north = -1;
 	cells[2].south = -1;
 	cells[2].west = -1;
 	cells[2].east = 1;
 	cells[2].up = -1;
-	cells[2].down = -1;
-	strcpy(cells[2].descriptionCell, "Welcome and Good Luck Boy!!!");
-	cells[2].treasureCell = -1;
-	cells[2].itemCell = -1;
+	cells[2].down = 1;
+	strcpy(cells[2].descriptionCell, "Nesta arena podes encontrar uma armadura que te vai dar mais HP");
+	cells[2].treasureCell = 1;
+	cells[2].itemCell = 1;
 
 	//cell 3 
-	cells[3].north = 2;
+	cells[3].north = -1;
 	cells[3].south = -1;
 	cells[3].west = -1;
 	cells[3].east = 1;
 	cells[3].up = -1;
 	cells[3].down = -1;
-	strcpy(cells[3].descriptionCell, "Welcome and Good Luck Boy!!!");
-	cells[3].treasureCell = -1;
-	cells[3].itemCell = -1;
+	strcpy(cells[3].descriptionCell, "Nesta arena podes encontrar uma armadura que te vai dar mais DANO");
+	cells[3].treasureCell = 2;
+	cells[3].itemCell = 2;
 
 	//cell 4 
-	cells[4].north = 2;
-	cells[4].south = -1;
-	cells[4].west = -1;
-	cells[4].east = 1;
+	cells[4].north = 7;
+	cells[4].south = 1;
+	cells[4].west = 5;
+	cells[4].east = 6;
 	cells[4].up = -1;
 	cells[4].down = -1;
-	strcpy(cells[4].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[4].descriptionCell, "Chegaste a um crusamento podes continar em frente para chegar a arena PRINCIPAL ou ir por um caminho maior");
 	cells[4].treasureCell = -1;
 	cells[4].itemCell = -1;
 
 	//cell 5 
-	cells[5].north = 2;
+	cells[5].north = -1;
 	cells[5].south = -1;
-	cells[5].west = -1;
-	cells[5].east = 1;
+	cells[5].west = 22;
+	cells[5].east = 5;
 	cells[5].up = -1;
 	cells[5].down = -1;
-	strcpy(cells[5].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[5].descriptionCell, "Por este caminho vais pela direita");
 	cells[5].treasureCell = -1;
 	cells[5].itemCell = -1;
 
 	//cell 6 
-	cells[6].north = 2;
+	cells[6].north = -1;
 	cells[6].south = -1;
-	cells[6].west = -1;
-	cells[6].east = 1;
+	cells[6].west = 4;
+	cells[6].east = 17;
 	cells[6].up = -1;
 	cells[6].down = -1;
-	strcpy(cells[6].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[6].descriptionCell, "Por este caminho vais pela esquerda");
 	cells[6].treasureCell = -1;
 	cells[6].itemCell = -1;
 
 	//cell 7 
-	cells[7].north = 2;
-	cells[7].south = -1;
-	cells[7].west = -1;
-	cells[7].east = 1;
+	cells[7].north = 10;
+	cells[7].south = 4;
+	cells[7].west = 9;
+	cells[7].east = 8;
 	cells[7].up = -1;
 	cells[7].down = -1;
-	strcpy(cells[7].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[7].descriptionCell, "Neste mumento soldado encontraste entre duas arenas, entra lá e descobre o que se passa!");
 	cells[7].treasureCell = -1;
 	cells[7].itemCell = -1;
 
 	//cell 8 
-	cells[8].north = 2;
+	cells[8].north = -1;
 	cells[8].south = -1;
-	cells[8].west = -1;
+	cells[8].west = 7;
 	cells[8].east = 1;
 	cells[8].up = -1;
 	cells[8].down = -1;
-	strcpy(cells[8].descriptionCell, "Welcome and Good Luck Boy!!!");
-	cells[8].treasureCell = -1;
-	cells[8].itemCell = -1;
+	strcpy(cells[8].descriptionCell, "Nesta arena exite uma besta feroz que tens de eliminar!!!");
+	cells[8].treasureCell = 3;
+	cells[8].itemCell = 3;
 
 	//cell 9 
-	cells[9].north = 2;
+	cells[9].north = -1;
 	cells[9].south = -1;
 	cells[9].west = -1;
-	cells[9].east = 1;
+	cells[9].east = 7;
 	cells[9].up = -1;
 	cells[9].down = -1;
-	strcpy(cells[9].descriptionCell, "Welcome and Good Luck Boy!!!");
-	cells[9].treasureCell = -1;
-	cells[9].itemCell = -1;
+	strcpy(cells[9].descriptionCell, "Nesta arena vais poder sentir o poder de uma criatura quase tão poderoza como o rei dos monstros");
+	cells[9].treasureCell = 4;
+	cells[9].itemCell = 4;
 
 	//cell 10 
-	cells[10].north = 2;
-	cells[10].south = -1;
-	cells[10].west = -1;
-	cells[10].east = 1;
-	cells[10].up = -1;
+	cells[10].north = -1;
+	cells[10].south = 7;
+	cells[10].west = 11;
+	cells[10].east = 12;
+	cells[10].up = 13;
 	cells[10].down = -1;
-	strcpy(cells[10].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[10].descriptionCell, "Neste mumento soldado ou sobes as escadas e entras na arena principal ou desistes, a escolha é tua");
 	cells[10].treasureCell = -1;
 	cells[10].itemCell = -1;
 
 	//cell 11
-	cells[11].north = 2;
+	cells[11].north = -1;
 	cells[11].south = -1;
-	cells[11].west = -1;
-	cells[11].east = 1;
+	cells[11].west = 14;
+	cells[11].east = 10;
 	cells[11].up = -1;
 	cells[11].down = -1;
-	strcpy(cells[11].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[11].descriptionCell, "Por este caminho vais pela direita");
 	cells[11].treasureCell = -1;
 	cells[11].itemCell = -1;
 
 	//cell 12
-	cells[12].north = 2;
+	cells[12].north = -1;
 	cells[12].south = -1;
-	cells[12].west = -1;
-	cells[12].east = 1;
+	cells[12].west = 10;
+	cells[12].east = 15;
 	cells[12].up = -1;
 	cells[12].down = -1;
-	strcpy(cells[12].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[12].descriptionCell, "Por este caminho vais pela esquerda");
 	cells[12].treasureCell = -1;
 	cells[12].itemCell = -1;
 
 	//cell 13
-	cells[13].north = 2;
+	cells[13].north = -1;
 	cells[13].south = -1;
 	cells[13].west = -1;
-	cells[13].east = 1;
+	cells[13].east = -1;
 	cells[13].up = -1;
-	cells[13].down = -1;
-	strcpy(cells[13].descriptionCell, "Welcome and Good Luck Boy!!!");
-	cells[13].treasureCell = -1;
-	cells[13].itemCell = -1;
+	cells[13].down = 10;
+	strcpy(cells[13].descriptionCell, "Muitos parabens pela tua CORAGEM !!! E boa sorte para o teu desafio soldado");
+	cells[13].treasureCell = 5;
+	cells[13].itemCell = 5;
 
 	//cell 14
-	cells[14].north = 2;
-	cells[14].south = -1;
+	cells[14].north = -1;
+	cells[14].south = 23;
 	cells[14].west = -1;
-	cells[14].east = 1;
+	cells[14].east = 11;
 	cells[14].up = -1;
 	cells[14].down = -1;
-	strcpy(cells[14].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[14].descriptionCell, "Estas num beco ou vias em direção há saida da vila ou voltas para tras");
 	cells[14].treasureCell = -1;
 	cells[14].itemCell = -1;
 
 	//cell 15
-	cells[15].north = 2;
-	cells[15].south = -1;
-	cells[15].west = -1;
-	cells[15].east = 1;
+	cells[15].north = -1;
+	cells[15].south = 16;
+	cells[15].west = 12;
+	cells[15].east = -1;
 	cells[15].up = -1;
 	cells[15].down = -1;
-	strcpy(cells[15].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[15].descriptionCell, "Estas num beco ou vias em direção há saida da vila ou voltas para tras");
 	cells[15].treasureCell = -1;
 	cells[15].itemCell = -1;
 
 	//cell 16
-	cells[16].north = 2;
-	cells[16].south = -1;
+	cells[16].north = 15;
+	cells[16].south = 17;
 	cells[16].west = -1;
-	cells[16].east = 1;
+	cells[16].east = -1;
 	cells[16].up = -1;
 	cells[16].down = -1;
-	strcpy(cells[16].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[16].descriptionCell, "Nesta rua ou voltas para tras ou continuas em direção saida da vila");
 	cells[16].treasureCell = -1;
 	cells[16].itemCell = -1;
 
 	//cell 17
-	cells[17].north = 2;
-	cells[17].south = -1;
-	cells[17].west = -1;
-	cells[17].east = 1;
+	cells[17].north = 16;
+	cells[17].south = 18;
+	cells[17].west = 6;
+	cells[17].east = -1;
 	cells[17].up = -1;
 	cells[17].down = -1;
-	strcpy(cells[17].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[17].descriptionCell, "Chegaste a meio da cidade do lado este");
 	cells[17].treasureCell = -1;
 	cells[17].itemCell = -1;
 
 	//cell 18
-	cells[18].north = 2;
-	cells[18].south = -1;
+	cells[18].north = 17;
+	cells[18].south = 19;
 	cells[18].west = -1;
-	cells[18].east = 1;
+	cells[18].east = -1;
 	cells[18].up = -1;
 	cells[18].down = -1;
-	strcpy(cells[18].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[18].descriptionCell, "Ou voltas para a saida da vila ou vias em direção ao rei do montro");
 	cells[18].treasureCell = -1;
 	cells[18].itemCell = -1;
 
 	//cell 19
-	cells[19].north = 2;
+	cells[19].north = 18;
 	cells[19].south = -1;
-	cells[19].west = -1;
-	cells[19].east = 1;
+	cells[19].west = 0;
+	cells[19].east = -1;
 	cells[19].up = -1;
 	cells[19].down = -1;
-	strcpy(cells[19].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[19].descriptionCell, "Tem coraje e vai em frente teras grandes reconpensas");
 	cells[19].treasureCell = -1;
 	cells[19].itemCell = -1;
 
 	//cell 20
-	cells[20].north = 2;
+	cells[20].north = 21;
 	cells[20].south = -1;
 	cells[20].west = -1;
-	cells[20].east = 1;
+	cells[20].east = 0;
 	cells[20].up = -1;
 	cells[20].down = -1;
-	strcpy(cells[20].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[20].descriptionCell, "Tem coraje e vai em frente teras grandes reconpensas");
 	cells[20].treasureCell = -1;
 	cells[20].itemCell = -1;
 
 	//cell 21
-	cells[21].north = 2;
-	cells[21].south = -1;
+	cells[21].north = 22;
+	cells[21].south = 20;
 	cells[21].west = -1;
-	cells[21].east = 1;
+	cells[21].east = -1;
 	cells[21].up = -1;
 	cells[21].down = -1;
-	strcpy(cells[21].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[21].descriptionCell, "Ou voltas para a saida da vila ou vias em direção ao rei do montro");
 	cells[21].treasureCell = -1;
 	cells[21].itemCell = -1;
 
 	//cell 22
-	cells[22].north = 2;
-	cells[22].south = -1;
+	cells[22].north = 23;
+	cells[22].south = 22;
 	cells[22].west = -1;
-	cells[22].east = 1;
+	cells[22].east = 5;
 	cells[22].up = -1;
 	cells[22].down = -1;
-	strcpy(cells[22].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[22].descriptionCell, "Chegaste a meio da cidade do lado oeste");
 	cells[22].treasureCell = -1;
 	cells[22].itemCell = -1;
 
 	//cell 23
-	cells[23].north = 2;
-	cells[23].south = -1;
+	cells[23].north = 14;
+	cells[23].south = 22;
 	cells[23].west = -1;
-	cells[23].east = 1;
+	cells[23].east = -1;
 	cells[23].up = -1;
 	cells[23].down = -1;
-	strcpy(cells[23].descriptionCell, "Welcome and Good Luck Boy!!!");
+	strcpy(cells[23].descriptionCell, "Estas num beco ou vias em direção há saida da vila ou voltas para tras");
 	cells[23].treasureCell = -1;
 	cells[23].itemCell = -1;
 
@@ -471,7 +683,7 @@ int InitMap(Cell cells[]) {
 }
 
 /*
-	
+	Este método carrega o mapa do jogo de um ficheiro com o nome "map.txt"
 */
 void LoadMapFromFile(struct Map *pMap) {
 	FILE *f;
@@ -488,7 +700,6 @@ void LoadMapFromFile(struct Map *pMap) {
 	int down;
 	int item;
 	int treasure;
-	char description[MAX_DESCRIPTION_CELL];
 
 	f = fopen("map.txt", "r");
 
@@ -507,39 +718,29 @@ void LoadMapFromFile(struct Map *pMap) {
 			pMap->cell[i].itemCell = item;
 			pMap->cell[i].treasureCell = treasure;
 
-			/*printf("\n");
-			printf("Norte: %d \n", pMap->cell[i].north);
-			printf("Sul: %d \n", pMap->cell[i].south);
-			printf("Oeste: %d \n", pMap->cell[i].west);
-			printf("Este: %d \n", pMap->cell[i].east);
-			printf("Cima: %d \n", pMap->cell[i].up);
-			printf("Baixo: %d \n", pMap->cell[i].down);
-			printf("Item: %d \n", pMap->cell[i].itemCell);
-			printf("Tesouro: %d \n", pMap->cell[i].treasureCell);*/
 			line++;
-			pMap->nCells++;
 
 		}
 		else if (strcmp(l, "\n") != 0 && l != " ") {
-			i--;
-			sscanf(l, "%s", &description);
-			strcpy(pMap->cell[i].descriptionCell, description);
+			strcpy(pMap->cell[i].descriptionCell, l);
 			line = 1;
-			//printf("Descricao: %s \n", pMap->cell[i].descriptionCell);
+			i++;
+			count++;
 		}
 		else {
 			//do Nothing
-			//printf("hello\n");
 		}
-		i++;
 		
 	}
-
+	pMap->nCells = count;
 	fclose(f);
 }
 
+/*
+	Este método mostra todas as salas do jogo no ecrã
+*/
 void PrintMapFromFile(Map *pMap) {
-	for (int i = 0; i <= pMap->nCells; i++) {
+	for (int i = 0; i < pMap->nCells; i++) {
 		printf("\n");
 		printf("Norte: %d \n", pMap->cell[i].north);
 		printf("Sul: %d \n", pMap->cell[i].south);
@@ -553,14 +754,19 @@ void PrintMapFromFile(Map *pMap) {
 	}
 }
 
-void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster *pMonster) {
+/*
+	Este método é o que permite o jogador navegar no mapa e usar algumas das funçoes implementadas
+*/
+void PlayerWalk(struct Player *pPlayer, struct Map *pMap) {
 	int option;
 	//FunctionClear();
 	printf(" --------------------------------------------------------------------\n");
 	printf(" Para andar a traves das catacumbas selecione uma das opções abaixo \n");
 	printf("1 - Norte  2 - Sul  3 - Oeste  4 - Este  5 - Subir 6 - Descer 7 - menu  8 - Save\n");
 	printf(" --------------------------------------------------------------------\n");
-	printf("\n Porta de destino: ");
+	printf("\n");
+	printf("Posisao atual: %d\n",pPlayer->cellPlayer);
+	printf("Porta de destino: \n");
 	
 	scanf("%d", &option);
 
@@ -568,37 +774,37 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster *pMonst
 	{
 	case 1:
 		if (pMap->cell[pPlayer->cellPlayer].north == -1) {
-			printf("Lamento mas as catacunbas não tem portas secretas !!!");
+			printf("Lamento mas nao podes atravesar parades !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].north; }
 		break;
 	case 2:
 		if (pMap->cell[pPlayer->cellPlayer].south == -1) {
-			printf("Lamento mas as catacunbas não tem portas secretas !!!");
+			printf("Lamento mas nao podes atravesar parades !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].south; }
 		break;
 	case 3:
 		if (pMap->cell[pPlayer->cellPlayer].west == -1) {
-			printf("Lamento mas as catacunbas não tem portas secretas !!!");
+			printf("Lamento mas nao podes atravesar parades !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].west; }
 		break;
 	case 4:
 		if (pMap->cell[pPlayer->cellPlayer].east == -1) {
-			printf("Lamento mas as catacunbas não tem portas secretas !!!");
+			printf("Lamento mas nao podes atravesar parades !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].east; }
 		break;
 	case 5:
 		if (pMap->cell[pPlayer->cellPlayer].up == -1) {
-			printf("Lamento mas as catacunbas não tem portas secretas !!!");
+			printf("Lamento mas nao podes atravesar parades !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].up; }
 		break;
 	case 6:
 		if (pMap->cell[pPlayer->cellPlayer].down == -1) {
-			printf("Lamento mas as catacunbas não tem portas secretas !!!");
+			printf("Lamento mas nao podes atravesar parades !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].down; }
 		break;
@@ -616,4 +822,9 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster *pMonst
 		printf("O valor introdusido é invalido!!! \n Insira novamente um numero de 1 a 7 \n");
 		break;
 	}
+}
+
+
+void MonstersWalk(struct Map *pMap, Monster monster[]) {
+
 }
