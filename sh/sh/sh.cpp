@@ -12,14 +12,9 @@
 
 
 #define MAX_NAME 20
-#define MAX_GMPLAYER_LIFE 10000
-#define MAX_GMPLAYER_DAMAGE 1000
-#define MAX_GMPLATEER_CRITIC 50
-
 #define MAX_MOSNTERS 100
 #define MAX_ITEMS 1000
 #define MAX_TREASURE 1000
-
 #define MAX_CELLS 200
 #define MAX_DESCRIPTION_CELL 1000
 #define NCELLS 200
@@ -36,6 +31,8 @@ Estruturas begin
 struct Player {
 	char namePlayer[MAX_NAME];
 	int energyPlayer;
+	int damage;
+	int critic;
 	int cellPlayer;
 	int itemPlayer;
 	int treasurePlayer;
@@ -107,15 +104,10 @@ void PrintMapFromFile(Map *pMap);
 void InitItemPlusTreasure(Map *pMap);
 
 void PlayerWalk(Player *pPlayer, Map *pMap);/*método que cria o mapa do jogo*/
-void MonstersWalk(struct Map *pMap, Monster monster[]);/*Método que permite o monstro se mover pelo mapa sozinho*/
-
-void GrabItems();/*Método que permite o jogador apanhar itens nas salas/ atualizar os status do seu avatar*/
-void FightWhithMonster();/*método que aciona a batalha entre o jogador e o monstro*/
+void MonstersWalk(struct Player *pPlayer, struct Map *pMap, Monster monster[]);/*Método que permite o monstro se mover pelo mapa sozinho*/
+void Battle(struct Player *pPlayer, struct Map *pMap, Monster monster[]);
+void GrabItems(struct Player *pPlayer, struct Map *pMap, Monster monster[], int i);/*Método que permite o jogador apanhar itens nas salas/ atualizar os status do seu avatar*/
 void EndGame();/*Método que determina quando o jogo acaba*/
-
-void CalculateCriticItis();
-
-void MasterPlayer();/*Modo de Administrador*/
 
 
 /*
@@ -150,7 +142,8 @@ int main()
 
 	while (player.cellPlayer != map.nCells) {
 		PlayerWalk(&player, &map);
-		MonstersWalk(&map, monster);
+		MonstersWalk(&player, &map, monster);
+		Battle(&player, &map, monster);
 	}
 	
 	return 0;
@@ -187,14 +180,31 @@ Este método inicializa o avatar do jogador no jogo,
 pondendo tambem definir o modo de jogo e a dificuldade do jogo
 */
 void InsertPlayer(Player *pPlayer) {
-	printf("Bro insere o teu nome! \n");
+	printf("\n");
+	printf("Soldado insere o teu nome! \n");
 	scanf("%s", pPlayer->namePlayer);
-	// selecionar modo de jogo / dificuldade
-	pPlayer->energyPlayer = 100;
-	pPlayer->itemPlayer = 0;
-	pPlayer->cellPlayer = 0;
-	pPlayer->treasurePlayer = 0;
 
+	if ((strcmp(pPlayer->namePlayer, "SU") == 0) || (strcmp(pPlayer->namePlayer, "su") == 0) ||
+		(strcmp(pPlayer->namePlayer, "super user") == 0) || (strcmp(pPlayer->namePlayer, "Super User") == 0)) {
+
+		// selecionar modo de jogo / dificuldade
+		pPlayer->energyPlayer = 10000;
+		pPlayer->damage = 1000;
+		pPlayer->critic = 200;
+		pPlayer->itemPlayer = 5;
+		pPlayer->cellPlayer = 0;
+		pPlayer->treasurePlayer = 5;
+	}
+	else {
+		
+		// selecionar modo de jogo / dificuldade
+		pPlayer->energyPlayer = 100;
+		pPlayer->damage = 50;
+		pPlayer->critic = 10;
+		pPlayer->itemPlayer = 0;
+		pPlayer->cellPlayer = 0;
+		pPlayer->treasurePlayer = 0;
+	}
 }
 
 /* Mostrar Jogador
@@ -221,7 +231,7 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[0].nameMosnter , "LUCIFER");
 	monster[0].damageMonster = 60;
 	monster[0].lifeMonster = 1000;
-	monster[0].criticMonster = 5;
+	monster[0].criticMonster = 70;
 	monster[0].itemMonster = 5;
 	monster[0].treasureMonster = 5;
 	count++;
@@ -231,7 +241,7 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[1].nameMosnter, "AZREL");
 	monster[1].damageMonster = 10;
 	monster[1].lifeMonster = 100;
-	monster[1].criticMonster = 1;
+	monster[1].criticMonster = 10;
 	monster[1].itemMonster = 1;
 	monster[1].treasureMonster = 1;
 	count++;
@@ -241,7 +251,7 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[2].nameMosnter, "HERCULES");
 	monster[2].damageMonster = 20;
 	monster[2].lifeMonster = 200;
-	monster[2].criticMonster = 2;
+	monster[2].criticMonster = 20;
 	monster[2].itemMonster = 2;
 	monster[2].treasureMonster = 2;
 	count++;
@@ -251,7 +261,7 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[3].nameMosnter, "JACLINE");
 	monster[3].damageMonster = 30;
 	monster[3].lifeMonster = 300;
-	monster[3].criticMonster = 3;
+	monster[3].criticMonster = 30;
 	monster[3].itemMonster = 3;
 	monster[3].treasureMonster = 3;
 	count++;
@@ -271,9 +281,9 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[5].nameMosnter, "ESCLETO 1");
 	monster[5].damageMonster = 10;
 	monster[5].lifeMonster = 100;
-	monster[5].criticMonster = 1;
-	monster[5].itemMonster = 6;
-	monster[5].treasureMonster = 6;
+	monster[5].criticMonster = 10;
+	monster[5].itemMonster = 0;
+	monster[5].treasureMonster = 1;
 	count++;
 
 	//Monstros lv1
@@ -281,9 +291,9 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[6].nameMosnter, "ESCLETO 2");
 	monster[6].damageMonster = 10;
 	monster[6].lifeMonster = 100;
-	monster[6].criticMonster = 1;
-	monster[6].itemMonster = 6;
-	monster[6].treasureMonster = 6;
+	monster[6].criticMonster = 10;
+	monster[6].itemMonster = 0;
+	monster[6].treasureMonster = 1;
 	count++;
 
 
@@ -292,9 +302,9 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[7].nameMosnter, "ESCLETO 3");
 	monster[7].damageMonster = 10;
 	monster[7].lifeMonster = 100;
-	monster[7].criticMonster = 1;
-	monster[7].itemMonster = 6;
-	monster[7].treasureMonster = 6;
+	monster[7].criticMonster = 10;
+	monster[7].itemMonster = 0;
+	monster[7].treasureMonster = 1;
 	count++;
 
 
@@ -303,9 +313,9 @@ void InicializeMonster(Monster monster[]) {
 	strcpy(monster[8].nameMosnter, "ESCLETO 4");
 	monster[8].damageMonster = 10;
 	monster[8].lifeMonster = 100;
-	monster[8].criticMonster = 1;
-	monster[8].itemMonster = 6;
-	monster[8].treasureMonster = 6;
+	monster[8].criticMonster = 10;
+	monster[8].itemMonster = 0;
+	monster[8].treasureMonster = 1;
 	count++;
 
 	monster[0].nMonsters = count;
@@ -356,7 +366,7 @@ void InitItemPlusTreasure(struct Map *pMap) {
 	strcpy(pMap->item[2].NameItem, "Steel Armor");
 	pMap->item[2].CriticItem = 0;
 	pMap->item[2].DamageItem = 0;
-	pMap->item[2].LifeItem = 0;
+	pMap->item[2].LifeItem = 100;
 	
 
 	//item 4
@@ -679,7 +689,7 @@ int InitMap(Cell cells[]) {
 
 	
 
-	return 23;
+	return 24;
 }
 
 /*
@@ -776,7 +786,8 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap) {
 		if (pMap->cell[pPlayer->cellPlayer].north == -1) {
 			printf("Lamento mas nao podes atravesar parades !!!");
 		}
-		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].north; }
+		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].north; 
+		}
 		break;
 	case 2:
 		if (pMap->cell[pPlayer->cellPlayer].south == -1) {
@@ -824,7 +835,217 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap) {
 	}
 }
 
+/*
+Esta Função faz com que os monstros do indice 5 a 7 andem pelo mapa de forma aleatória e sendo estes escolhidos de forma aleatória
+*/
+void MonstersWalk(struct Player *pPlayer, struct Map *pMap, Monster monster[]) {
+	int randMoveMonster = rand() % 6 + 1;
+	int randMonster = 0;
 
-void MonstersWalk(struct Map *pMap, Monster monster[]) {
+	while (randMonster < 5 || randMonster > 7) {
+		randMonster = rand() % 7 + 5;
+	}
 
+
+	if ((strcmp(pPlayer->namePlayer,"SU") == 0) || (strcmp(pPlayer->namePlayer, "su") == 0) || 
+		(strcmp(pPlayer->namePlayer, "super user") == 0) || (strcmp(pPlayer->namePlayer, "Super User") == 0)) {
+		switch (randMoveMonster)
+		{
+		case 1:
+			if (pMap->cell[monster[randMonster].cellMonster].north == -1) {
+				printf("Monstro não se moveu!\n");
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].north;
+				printf("\n");
+				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
+				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+			}
+			break;
+		case 2:
+			if (pMap->cell[monster[randMonster].cellMonster].south == -1) {
+				printf("Monstro não se moveu!\n");
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].south;
+				printf("\n");
+				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
+				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+			}
+			break;
+		case 3:
+			if (pMap->cell[monster[randMonster].cellMonster].west == -1) {
+				printf("Monstro não se moveu!\n");
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].west;
+				printf("\n");
+				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
+				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+			}
+			break;
+		case 4:
+			if (pMap->cell[monster[randMonster].cellMonster].east == -1) {
+				printf("Monstro não se moveu!\n");
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].east;
+				printf("\n");
+				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
+				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+			}
+			break;
+		case 5:
+			if (pMap->cell[monster[randMonster].cellMonster].up == -1) {
+				printf("Monstro não se moveu!\n");
+			}
+			else {
+				printf("Monstro não se moveu!\n");
+			}
+			break;
+		case 6:
+			if (pMap->cell[monster[randMonster].cellMonster].down == -1) {
+				printf("Monstro não se moveu!\n");
+			}
+			else
+			{
+				printf("Monstro não se moveu!\n");
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	else {
+		switch (randMoveMonster)
+		{
+		case 1:
+			if (pMap->cell[monster[randMonster].cellMonster].north == -1) {
+				
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].north;
+				
+			}
+			break;
+		case 2:
+			if (pMap->cell[monster[randMonster].cellMonster].south == -1) {
+				
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].south;
+				
+			}
+			break;
+		case 3:
+			if (pMap->cell[monster[randMonster].cellMonster].west == -1) {
+				
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].west;
+				
+			}
+			break;
+		case 4:
+			if (pMap->cell[monster[randMonster].cellMonster].east == -1) {
+				
+			}
+			else {
+				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].east;
+				
+			}
+			break;
+		case 5:
+			if (pMap->cell[monster[randMonster].cellMonster].up == -1) {
+				
+			}
+			else {
+				
+			}
+			break;
+		case 6:
+			if (pMap->cell[monster[randMonster].cellMonster].down == -1) {
+			}
+			else
+			{
+
+			}
+			break;
+		default:
+			break;
+		}
+	}
 }
+
+/*
+Nesta Função o jogador batalha com um monstro ou varios caso exista algum monstro na sua cela
+*/
+void Battle(struct Player *pPlayer, struct Map *pMap, Monster monster[]) {
+	int randCriticPlayer = 0; // é sorteado um valor de ataque critico
+	int randAtkPlayer = 0; //O Player acerta o ataque ou falha
+	int newatkPlayer = 0; //Novo valor de ataque do jogador
+	
+	int randCriticMonster = 0; // é sorteado um valor de ataque critico
+	int randAtkMonster = 0; //O Player acerta o ataque ou falha
+	int newatkMonster = 0; //Novo valor de ataque do monstro
+
+	for (int i = 0; i < monster[0].nMonsters; i++) {
+
+		while (pPlayer->cellPlayer == monster[i].cellMonster && pPlayer->energyPlayer > 0 && monster[i].lifeMonster > 0) {
+			randAtkPlayer = rand() % 6;
+			randCriticPlayer = rand() % pPlayer->critic;
+			newatkPlayer =  ((pPlayer->damage * randCriticPlayer) / 100);
+			newatkPlayer = newatkPlayer + pPlayer->damage;
+
+
+			if (randAtkPlayer >= 3) {
+				monster[i].lifeMonster = monster[i].lifeMonster - newatkPlayer;
+				printf("\n");
+				printf("Monstro: %s\n", monster[i].nameMosnter);
+				printf("Dano tirado ao Monstro: %d\n", newatkPlayer);
+				printf("HP atual do Monstro: %d\n", monster[i].lifeMonster);
+			}
+			else {
+				printf("Parabens acabaste de falar completamente o ATAQUE!!!\n");
+			}
+
+			randAtkMonster = rand() % 6;
+			randCriticMonster = rand() % monster[i].criticMonster;
+			newatkMonster = ((monster[i].damageMonster * randCriticMonster) / 100);
+			newatkMonster += monster[i].damageMonster;
+
+			if (randAtkMonster >= 3 && monster[i].lifeMonster > 0){
+				pPlayer->energyPlayer -= newatkMonster;
+				printf("\n");
+				printf("Soldado: %s\n", pPlayer->namePlayer);
+				printf("Dano tirado pelo Monstro: %d\n", newatkMonster);
+				printf("HP: %d\n", pPlayer->energyPlayer);
+			}
+			else {
+				if (monster[i].lifeMonster > 0) {
+					printf("Para tua sorte Soldado o Monstro %s", monster[i].nameMosnter);
+					printf(" acabou de falhar o ataque\n");
+				}
+				else { //Quando a vida do monstro for menor que 0 o jogador podera receber os items que estão na sala
+					int itemSelect = pMap->cell[pPlayer->cellPlayer].itemCell; // esta variavel guarda o valor do item que se encontra na mesma sala do jogador
+					int treasureSelected = pMap->cell[pPlayer->cellPlayer].treasureCell; //esta variaver guarda o valor do tesouro que se encontra na mesma sala do jogador
+
+						pPlayer->damage = pPlayer->damage + pMap->item[itemSelect].DamageItem;
+						pPlayer->critic = pPlayer->critic + pMap->item[itemSelect].CriticItem;
+						pPlayer->energyPlayer = pPlayer->energyPlayer + pMap->item[itemSelect].LifeItem;	
+
+						/*printf("Item Adicionado: %s", pMap->item[itemSelect].NameItem);
+						printf("Dano Adicionado: %d", pMap->item[itemSelect].DamageItem);
+						printf("Dano critico Adicionado: %d", pMap->item[itemSelect].CriticItem);
+						printf("HP Adicionado: %d", pMap->item[itemSelect].LifeItem);*/
+
+						pPlayer->treasurePlayer = pPlayer->treasurePlayer + pMap->treasure[treasureSelected].Gold;
+						/*printf("Gold Adicionado: %d", pMap->treasure[treasureSelected].Gold);*/
+				}
+			}
+		}
+	}
+	
+}
+
+
