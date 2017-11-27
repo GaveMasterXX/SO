@@ -19,6 +19,7 @@
 #define MAX_DESCRIPTION_CELL 1000
 #define NCELLS 200
 #define MAX_LINE 1000
+#define MAX_FILENAME 30
 
 #define EMPTY _T( ' ' )
 
@@ -1192,7 +1193,7 @@ void Battle(struct Player *pPlayer, struct Map *pMap, Monster monster[]) {
 					int treasureSelected = pMap->cell[pPlayer->cellPlayer].treasureCell; //esta variaver guarda o valor do tesouro que se encontra na mesma sala do jogador
 
 					
-					if (itemSelect != -1) {
+					if (itemSelect != -1) { // jogador apanha item
 						pPlayer->damage = pPlayer->damage + pMap->item[itemSelect].DamageItem;
 						pPlayer->critic = pPlayer->critic + pMap->item[itemSelect].CriticItem;
 						pPlayer->energyPlayer = pPlayer->energyPlayer + pMap->item[itemSelect].LifeItem;
@@ -1202,7 +1203,7 @@ void Battle(struct Player *pPlayer, struct Map *pMap, Monster monster[]) {
 						printf("Dano critico Adicionado: %d", pMap->item[itemSelect].CriticItem);
 						printf("HP Adicionado: %d", pMap->item[itemSelect].LifeItem);
 					}
-					if (treasureSelected != -1) {
+					if (treasureSelected != -1) {// jogador apanha tesouro
 						pPlayer->treasurePlayer = pPlayer->treasurePlayer + pMap->treasure[treasureSelected].Gold;
 						printf("\n");
 						printf("Tesouro encontrado: %s\n", pMap->treasure[treasureSelected].NameTreasure);
@@ -1220,7 +1221,7 @@ Esta função guarda o jogo num ficheiro binário em que o nume é atribuido pelo ut
 void SaveGame(struct Player *pPlayer, struct Monster monster[]) {
 	struct SaveGame save;
 	FILE *f;
-	char fileName[MAX_NAME];
+	char fileName[MAX_FILENAME];
 	printf("Insere um nome para o ficheiro: \n");
 	scanf("%s", fileName);
 	//fgets(fileName, MAX_NAME, stdin);
@@ -1230,7 +1231,7 @@ void SaveGame(struct Player *pPlayer, struct Monster monster[]) {
 	f = fopen(fileName, "wb");
 
 	fwrite(pPlayer, sizeof(struct Player), 1, f);
-	for (int i = 0; i <= (monster[0].nMonsters - 1); i++) {
+	for (int i = 0; i < monster[0].nMonsters; i++) {
 		save.saveMonster.cellMonster = monster[i].cellMonster;
 		save.saveMonster.criticMonster = monster[i].criticMonster;
 		save.saveMonster.damageMonster = monster[i].damageMonster;
@@ -1249,7 +1250,7 @@ Esta função carrega o jogo de um ficheiro binário, o utilizador pode escolher qu
 void LoadGame(struct Player *pPlayer, struct Monster monster[]) {
 	struct SaveGame save;
 	FILE *f;
-	char fileName[MAX_NAME];
+	char fileName[MAX_FILENAME];
 	printf("Insere o nome do savefile que pretendes continuar: \n");
 	//fgets(fileName, MAX_NAME, stdin);
 	scanf("%s", fileName);
@@ -1263,7 +1264,7 @@ void LoadGame(struct Player *pPlayer, struct Monster monster[]) {
 	}
 	else {
 		fread(pPlayer, sizeof(struct Player), 1, f);
-		for (int i = 0; i <= (monster[0].nMonsters - 1); i++) {
+		for (int i = 0; i < monster[0].nMonsters; i++) {
 			fread(&save, sizeof(struct SaveGame), 1, f);
 			monster[i].cellMonster = save.saveMonster.cellMonster;
 			monster[i].criticMonster = save.saveMonster.criticMonster;
