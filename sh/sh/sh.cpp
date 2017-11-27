@@ -95,7 +95,7 @@ Struct END
 */
 
 void FunctionClear(); // esta função limpa o ecrã
-void InsertPlayer(Player *pPlayer);/*Método que permite o utilizador inserir o seu avatar*/
+void InsertPlayer(Player *pPlayer);/*Funça que permite o utilizador inserir o seu avatar*/
 void PrintPlayer(Player *pPlayer);/*mostra os status do avatar no ecrâ*/
 
 void InicializeMonster(Monster monster[]);// inicializa varios monstros no jogo
@@ -106,13 +106,14 @@ int InitMap(Cell cells[]);// inicia o mapa do jogo atraves de variáveis fixas
 void LoadMapFromFile(Map *pMap); // carrega o mapa do jogo de um ficheiro txt
 void PrintMapFromFile(Map *pMap); // faz o print de todas as salas do jogo
 void InitItemPlusTreasure(Map *pMap);//inicia os objectos de forma fixa
-void InitObejectItem(Map *pMap); // carrega os objectos de um ficheiro txt
+void InitObejectItem(Map *pMap); // carrega os objectos de um ficheiro txt e transforma os em ficheiro bin
+void InitObejectItemBin(Map *pMap); // carrega os objectos de um ficheiro bin
 void InitObejectTreasure( Map *pMap); //carrega os tesouros de ficheiro em txt
 
-void PlayerWalk(Player *pPlayer, Map *pMap, Monster monster[]);/*método que cria o mapa do jogo*/
-void MonstersWalk(Player *pPlayer,Map *pMap, Monster monster[]);/*Método que permite o monstro se mover pelo mapa sozinho*/
+void PlayerWalk(Player *pPlayer, Map *pMap, Monster monster[]);/*~Função que cria o mapa do jogo*/
+void MonstersWalk(Player *pPlayer,Map *pMap, Monster monster[]);/*Função que permite o monstro se mover pelo mapa sozinho*/
 void Battle(Player *pPlayer, Map *pMap, Monster monster[]);// Batalha entre os monstros e o jogador
-void EndGame( Player *pPlayer, Monster monster[], Map *pMap);/*Método que determina quando o jogo acaba*/
+void EndGame( Player *pPlayer, Monster monster[], Map *pMap);/*Função que determina quando o jogo acaba*/
 
 void SaveGame(Player *pPlayer, Monster monster[]); // garda o jogo num ficheiro em binário
 void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um ficheiro em binário
@@ -120,7 +121,7 @@ void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um fiche
 
 /*
 ---------- Hunter Hallow --------
-O main é onde os métodos principais são chamados
+O main é onde as funções principais são chamados
 */
 int main()
 {
@@ -169,7 +170,8 @@ int main()
 	//PrintMapFromFile(&map);
 	//map.nCells = InitMap(cells);
 	//InitItemPlusTreasure(&map);
-	InitObejectItem(&map);
+	//InitObejectItem(&map);
+	InitObejectItemBin(&map);
 	InitObejectTreasure(&map);
 
 	while (player.cellPlayer != (map.nCells + 1)) {
@@ -183,8 +185,8 @@ int main()
 }
 
 /*
-Método que tem como objetivo limpar a consola com se fosse um "System("cls")"
-este método foi retirado de um dos documentos de apoio do Professor Luis Garcia
+Função que tem como objetivo limpar a consola com se fosse um "System("cls")"
+esta função foi retirado de um dos documentos de apoio do Professor Luis Garcia
 */
 void FunctionClear() {
 	_tsetlocale(LC_ALL, _T("Portuguese"));
@@ -208,8 +210,8 @@ void FunctionClear() {
 
 }
 
-/* Método de iniciação do jogador
-Este método inicializa o avatar do jogador no jogo,
+/* 
+Esta função inicializa o avatar do jogador no jogo,
 pondendo tambem definir o modo de jogo e a dificuldade do jogo
 */
 void InsertPlayer(Player *pPlayer) {
@@ -241,7 +243,7 @@ void InsertPlayer(Player *pPlayer) {
 }
 
 /* Mostrar Jogador
-Este Método tem como função principal mostrar os status do jogador no ecrã
+Esta funçao tem como função principal mostrar os status do jogador no ecrã
 */
 void PrintPlayer(Player *pPlayer) {
 	printf("\n");
@@ -255,7 +257,7 @@ void PrintPlayer(Player *pPlayer) {
 }
 
 /*
-Neste método são inicializados os monstros do jogo
+Nesta função são inicializados os monstros do jogo
 */
 void InicializeMonster(Monster monster[]) {
 	int count = 0;
@@ -355,7 +357,7 @@ void InicializeMonster(Monster monster[]) {
 }
 
 /*
-Este método vai fazer o print de todos os monstros no jogo
+Este função vai fazer o print de todos os monstros no jogo
 */
 void PrintMonster(Monster monster[]) {
 	for (int i = 0; i < monster[0].nMonsters; i++) {
@@ -371,7 +373,7 @@ void PrintMonster(Monster monster[]) {
 }
 
 /*
-Método que inicializa os items e os tesouros no jogo
+Função que inicializa os items e os tesouros no jogo
 */
 void InitItemPlusTreasure(struct Map *pMap) {
 
@@ -453,10 +455,10 @@ void InitItemPlusTreasure(struct Map *pMap) {
 }
 
 /*
-Nesta função inicializa-se os objectos do ficheiro txt
+Nesta função inicializa os objectos do ficheiro txt e transforma os num ficheiro bin
 */
 void InitObejectItem(struct Map *pMap) {
-	FILE *f;
+	FILE *f, *f2;
 	char l[MAX_LINE];
 	int line = 1;
 	int i = 0;
@@ -465,7 +467,7 @@ void InitObejectItem(struct Map *pMap) {
 	int id, position, damage, critic, hp;
 
 	f = fopen("items.txt", "r");
-
+	f2 = fopen("objectos.dat", "w");
 
 	while (fgets(l, MAX_LINE, f) != NULL) {
 		if (line == 1 && strcmp(l, "\n") != 0) {
@@ -476,7 +478,7 @@ void InitObejectItem(struct Map *pMap) {
 			pMap->item[i].DamageItem = damage;
 			pMap->item[i].CriticItem = critic;
 			pMap->item[i].LifeItem = hp;
-
+			
 			line++;
 
 		}
@@ -489,7 +491,37 @@ void InitObejectItem(struct Map *pMap) {
 		else {
 			//do Nothing
 		}
+		
+	}
+	
 
+	for (int i = 0; i < count; i++) { // escrever fich bin
+
+		fwrite(&pMap->item[i], sizeof(struct Item), 1, f2);
+	}
+
+	fclose(f);
+	fclose(f2);
+}
+
+/*
+Nesta função incializa-se os itens de um ficheiro binario
+*/
+void InitObejectItemBin(struct Map *pMap) {
+	struct Item item;
+	FILE *f;
+	char l[MAX_LINE];
+	int i = 0;
+	f = fopen("objectos.dat", "r");
+
+	while (((fread(&item, sizeof(struct Item), 1, f)) > 0) != NULL) {
+		pMap->item[i].CodItem = item.CodItem;
+		pMap->item[i].PositionItem = item.PositionItem;
+		pMap->item[i].DamageItem = item.DamageItem;
+		pMap->item[i].CriticItem = item.CriticItem;
+		pMap->item[i].LifeItem = item.LifeItem;
+		strcpy(pMap->item[i].NameItem, item.NameItem);
+		i++;
 	}
 
 	fclose(f);
@@ -538,7 +570,7 @@ void InitObejectTreasure(Map *pMap){
 }
 
 /*
-Este método serve inicia o mapa numa primeira versão antes de implementar a leitura do mapa apartir de um ficheiro
+Esta função serve inicia o mapa numa primeira versão antes de implementar a leitura do mapa apartir de um ficheiro
 */
 int InitMap(Cell cells[]) {
 
@@ -812,7 +844,7 @@ int InitMap(Cell cells[]) {
 }
 
 /*
-Este método carrega o mapa do jogo de um ficheiro com o nome "map.txt"
+Esta função carrega o mapa do jogo de um ficheiro com o nome "map.txt"
 */
 void LoadMapFromFile(struct Map *pMap) {
 	FILE *f;
@@ -866,7 +898,7 @@ void LoadMapFromFile(struct Map *pMap) {
 }
 
 /*
-Este método mostra todas as salas do jogo no ecrã
+Esta função mostra todas as salas do jogo no ecrã
 */
 void PrintMapFromFile(Map *pMap) {
 	for (int i = 0; i < pMap->nCells; i++) {
@@ -884,7 +916,7 @@ void PrintMapFromFile(Map *pMap) {
 }
 
 /*
-Este método é o que permite o jogador navegar no mapa e usar algumas das funçoes implementadas
+Esta função é o que permite o jogador navegar no mapa e usar algumas das funçoes implementadas
 */
 void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
 	int option;
