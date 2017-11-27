@@ -1141,7 +1141,7 @@ void Battle(struct Player *pPlayer, struct Map *pMap, Monster monster[]) {
 	int newatkPlayer = 0; //Novo valor de ataque do jogador
 
 	int randCriticMonster = 0; // é sorteado um valor de ataque critico
-	int randAtkMonster = 0; //O Player acerta o ataque ou falha
+	int randAtkMonster = 0; //O Monster acerta o ataque ou falha
 	int newatkMonster = 0; //Novo valor de ataque do monstro
 
 	for (int i = 0; i < monster[0].nMonsters; i++) {// enquanto houver monstros na sala o jodador vai lutando contra eles
@@ -1187,7 +1187,7 @@ void Battle(struct Player *pPlayer, struct Map *pMap, Monster monster[]) {
 					printf("Para tua sorte Soldado o Monstro %s", monster[i].nameMosnter);
 					printf(" acabou de falhar o ataque\n");
 				}
-				else { //Quando a vida do monstro for menor que 0 o jogador podera receber os items que estão na sala
+				else { //Quando a vida do monstro for menor ou igual 0 o jogador podera receber os items que estão na sala
 					int itemSelect = pMap->cell[pPlayer->cellPlayer].itemCell; // esta variavel guarda o valor do item que se encontra na mesma sala do jogador
 					int treasureSelected = pMap->cell[pPlayer->cellPlayer].treasureCell; //esta variaver guarda o valor do tesouro que se encontra na mesma sala do jogador
 
