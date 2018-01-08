@@ -22,7 +22,9 @@
 #define MAX_FILENAME 30
 
 #define EMPTY _T( ' ' )
+#define MAX_THREADS 20
 
+HANDLE hMutexEcran;
 
 
 /*
@@ -120,12 +122,34 @@ void SaveGame(Player *pPlayer, Monster monster[]); // garda o jogo num ficheiro 
 void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um ficheiro em binário
 
 
+/*THREADS BEGIN*/
+
+DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
+{
+
+	return 0;
+}
+
+
+/*THREADS END*/
 /*
 ---------- Hunter Hallow --------
 O main é onde as funções principais são chamados
 */
 int main()
 {
+	int i;
+
+	hMutexEcran = CreateMutex(
+		NULL,                       // default security attributes
+		FALSE,                      // initially not owned
+		NULL);                      // unnamed mutex
+
+	printf("Thread Principal: Vou criar varios threads.\n");
+
+
+	//Array de identificadores de threads
+	HANDLE  hThreadArray[MAX_THREADS];
 
 	struct Player player;
 	struct Monster monster[MAX_MOSNTERS];
@@ -169,17 +193,43 @@ int main()
 
 	LoadMapFromFile(&map);
 	//PrintMapFromFile(&map);
-	//map.nCells = InitMap(cells);
-	//InitItemPlusTreasure(&map);
-	//InitObejectItem(&map);
 	InitObejectItemBin(&map);
 	InitObejectTreasure(&map);
 
 	while (player.cellPlayer != (map.nCells + 1)) {
 		PlayerWalk(&player, &map, monster);
+
 		MonstersWalk(&player, &map, monster);
+		//Criaçao dos vários threads
+		for (i = 1; i <= monster[0].nMonsters; i++) {
+
+			hThreadArray[i] = CreateThread(
+				NULL,              // default security attributes
+				0,                 // use default stack size  
+				ThreadMoveMonsters,        // thread function 
+				monster,             // argument to thread function 
+				0,                 // use default creation flags 
+				NULL);   // returns the thread identifier
+		}
+
+		//Espera pelo término dos vários threads
+		printf("Thread Principal: Vou esperar pelos threads\n");
+		for (i = 1; i < argc; i++) {
+
+			WaitForSingleObject(hThreadArray[i], INFINITE);
+			PrintToConsole("Thread Principal: Terminou um thread...\n");
+			CloseHandle(hThreadArray[i]);
+
+		}
+
+		
+
+
+
+
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
+		CloseHandle(hMutexEcran);
 	}
 
 	return 0;
