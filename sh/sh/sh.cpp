@@ -93,6 +93,12 @@ struct Map
 struct SaveGame {
 	struct Monster saveMonster;
 };
+
+struct Threads {
+	struct Monster monsters;
+	struct Player Player;
+	struct Map map;
+};
 /*
 Struct END
 */
@@ -125,8 +131,10 @@ void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um fiche
 /*THREADS BEGIN*/
 
 DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
-{
-
+{	
+	char text[100];
+	sprintf(text,"Monster Name: %s", ((struct Threads*) lpParam)->monsters.nameMosnter));
+	PrintToConsole(text);
 	return 0;
 }
 
@@ -139,6 +147,7 @@ O main é onde as funções principais são chamados
 int main()
 {
 	int i;
+	int countThreads = 0;
 
 	hMutexEcran = CreateMutex(
 		NULL,                       // default security attributes
@@ -155,6 +164,7 @@ int main()
 	struct Monster monster[MAX_MOSNTERS];
 	struct Cell cells[MAX_CELLS];
 	struct Map map;
+	struct Threads threads;
 	int nCells;
 
 	printf("--------------------------------\n");
@@ -201,25 +211,29 @@ int main()
 
 		MonstersWalk(&player, &map, monster);
 		//Criaçao dos vários threads
-		for (i = 1; i <= monster[0].nMonsters; i++) {
-
+		for (i = 0; i <= monster[0].nMonsters; i++) {
+			if(i >= 5 && i <= 8) {
+				
+			
 			hThreadArray[i] = CreateThread(
 				NULL,              // default security attributes
 				0,                 // use default stack size  
 				ThreadMoveMonsters,        // thread function 
-				monster,             // argument to thread function 
+				&threads,             // argument to thread function 
 				0,                 // use default creation flags 
 				NULL);   // returns the thread identifier
+
+			}
 		}
 
 		//Espera pelo término dos vários threads
 		printf("Thread Principal: Vou esperar pelos threads\n");
-		for (i = 1; i < argc; i++) {
-
-			WaitForSingleObject(hThreadArray[i], INFINITE);
-			PrintToConsole("Thread Principal: Terminou um thread...\n");
-			CloseHandle(hThreadArray[i]);
-
+		for (i = 0; i <= monster[0].nMonsters; i++) {
+			if (i >= 5 && i <= 8) {
+				WaitForSingleObject(hThreadArray[i], INFINITE);
+				printf("Thread Principal: Terminou um thread...\n");
+				CloseHandle(hThreadArray[i]);
+			}
 		}
 
 		
