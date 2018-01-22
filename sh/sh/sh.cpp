@@ -11,7 +11,7 @@
 
 
 
-#define MAX_NAME 20
+#define MAX_NAME 12
 #define MAX_MOSNTERS 100
 #define MAX_ITEMS 1000
 #define MAX_TREASURE 1000
@@ -24,7 +24,7 @@
 #define EMPTY _T( ' ' )
 #define MAX_THREADS 20
 
-HANDLE hMutexEcran;
+HANDLE hSemaphore1;
 
 
 /*
@@ -34,11 +34,11 @@ Estruturas begin
 struct Player {
 	char namePlayer[MAX_NAME];
 	int energyPlayer;
-	int damage;
-	int critic;
-	int cellPlayer;
-	int itemPlayer;
-	int treasurePlayer;
+int damage;
+int critic;
+int cellPlayer;
+int itemPlayer;
+int treasurePlayer;
 };
 
 struct Monster {
@@ -104,37 +104,42 @@ Struct END
 */
 
 void FunctionClear(); // esta função limpa o ecrã
+void PrintToConsole(char text[]);
 void InsertPlayer(Player *pPlayer);/*Funça que permite o utilizador inserir o seu avatar*/
 void PrintPlayer(Player *pPlayer);/*mostra os status do avatar no ecrâ*/
 
 void InicializeMonster(Monster monster[]);// inicializa varios monstros no jogo
 void PrintMonster(Monster monster[]);/*mostra os status do monstro no ecrâ*/
 
-int InitMap(Cell cells[]);// inicia o mapa do jogo atraves de variáveis fixas
-
 void LoadMapFromFile(Map *pMap); // carrega o mapa do jogo de um ficheiro txt
 void PrintMapFromFile(Map *pMap); // faz o print de todas as salas do jogo
-void InitItemPlusTreasure(Map *pMap);//inicia os objectos de forma fixa
 void InitObejectItem(Map *pMap); // carrega os objectos de um ficheiro txt e transforma os em ficheiro bin
 void InitObejectItemBin(Map *pMap); // carrega os objectos de um ficheiro bin
-void InitObejectTreasure( Map *pMap); //carrega os tesouros de ficheiro em txt
+void InitObejectTreasure(Map *pMap); //carrega os tesouros de ficheiro em txt
 
 void PlayerWalk(Player *pPlayer, Map *pMap, Monster monster[]);/*~Função que cria o mapa do jogo*/
-void MonstersWalk(Player *pPlayer,Map *pMap, Monster monster[]);/*Função que permite o monstro se mover pelo mapa sozinho*/
+void MonstersWalk(Player *pPlayer, Map *pMap, Monster monster[]);/*Função que permite o monstro se mover pelo mapa sozinho*/
 void Battle(Player *pPlayer, Map *pMap, Monster monster[]);// Batalha entre os monstros e o jogador
-void EndGame( Player *pPlayer, Monster monster[], Map *pMap);/*Função que determina quando o jogo acaba*/
+void EndGame(Player *pPlayer, Monster monster[], Map *pMap);/*Função que determina quando o jogo acaba*/
 
 void SaveGame(Player *pPlayer, Monster monster[]); // garda o jogo num ficheiro em binário
 void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um ficheiro em binário
 
 
 /*THREADS BEGIN*/
+DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
+{
+	PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
+	ReleaseSemaphore(hSemaphore1, 1, NULL);
+	return 0;
+}
 
 DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
-{	
-	char text[100];
-	sprintf(text,"Monster Name: %s", ((struct Threads*) lpParam)->monsters.nameMosnter));
-	PrintToConsole(text);
+{
+	WaitForSingleObject(hSemaphore1, INFINITE);
+
+	MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
+	ReleaseSemaphore(hSemaphore1, 1, NULL);
 	return 0;
 }
 
@@ -149,17 +154,18 @@ int main()
 	int i;
 	int countThreads = 0;
 
-	hMutexEcran = CreateMutex(
-		NULL,                       // default security attributes
-		FALSE,                      // initially not owned
-		NULL);                      // unnamed mutex
+	hSemaphore1 = CreateSemaphore(
+		NULL,                     // default security attributes
+		0,                        // int value
+		1,						  // MAXIMUM VALUE
+		NULL);                    // unnamed mutex
 
 	printf("Thread Principal: Vou criar varios threads.\n");
 
 
 	//Array de identificadores de threads
-	HANDLE  hThreadArray[MAX_THREADS];
-
+	HANDLE  hThreadMonster[MAX_THREADS];
+	HANDLE hThreadPlayer;
 	struct Player player;
 	struct Monster monster[MAX_MOSNTERS];
 	struct Cell cells[MAX_CELLS];
@@ -207,15 +213,51 @@ int main()
 	InitObejectTreasure(&map);
 
 	while (player.cellPlayer != (map.nCells + 1)) {
-		PlayerWalk(&player, &map, monster);
+		//PlayerWalk(&player, &map, monster);
 
-		MonstersWalk(&player, &map, monster);
+		//MonstersWalk(&player, &map, monster);
+
+		for (i = 0; i < monster[0].nMonsters; i++) {
+
+			strcpy(threads.monsters.nameMosnter, monster[i].nameMosnter);
+			threads.monsters.cellMonster = monster[i].cellMonster;
+			threads.monsters.criticMonster = monster[i].criticMonster;
+			threads.monsters.damageMonster = monster[i].damageMonster;
+			threads.monsters.itemMonster = monster[i].itemMonster;
+			threads.monsters.lifeMonster = monster[i].lifeMonster;
+			threads.monsters.treasureMonster = monster[i].treasureMonster;
+			threads.monsters.nMonsters = monster[0].nMonsters;
+		}
+
+		for (i = 0; i < map.nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
+			threads.map.cell[i].north = map.cell[i].north;
+			threads.map.cell[i].south = map.cell[i].south;
+			threads.map.cell[i].west = map.cell[i].west;
+			threads.map.cell[i].east = map.cell[i].east;
+			threads.map.cell[i].up = map.cell[i].up;
+			threads.map.cell[i].down = map.cell[i].down;
+			strcpy(threads.map.cell[i].descriptionCell, map.cell[i].descriptionCell);
+		}
+		// falta descrição do mapa, add data from player
+
+
+		threads.Player = player;
+
+		hThreadPlayer = CreateThread(
+			NULL,              // default security attributes
+			0,                 // use default stack size  
+			ThreadMovePlayer,        // thread function 
+			&threads,             // argument to thread function 
+			0,                 // use default creation flags 
+			NULL);   // returns the thread identifier 
+
+
+
+
 		//Criaçao dos vários threads
-		for (i = 0; i <= monster[0].nMonsters; i++) {
-			if(i >= 5 && i <= 8) {
-				
-			
-			hThreadArray[i] = CreateThread(
+		for (i = 0; i < monster[0].nMonsters; i++) {
+
+			hThreadMonster[i] = CreateThread(
 				NULL,              // default security attributes
 				0,                 // use default stack size  
 				ThreadMoveMonsters,        // thread function 
@@ -223,29 +265,19 @@ int main()
 				0,                 // use default creation flags 
 				NULL);   // returns the thread identifier
 
-			}
 		}
 
-		//Espera pelo término dos vários threads
-		printf("Thread Principal: Vou esperar pelos threads\n");
-		for (i = 0; i <= monster[0].nMonsters; i++) {
-			if (i >= 5 && i <= 8) {
-				WaitForSingleObject(hThreadArray[i], INFINITE);
-				printf("Thread Principal: Terminou um thread...\n");
-				CloseHandle(hThreadArray[i]);
-			}
-		}
 
-		
-
-
-
+		WaitForSingleObject(ThreadMovePlayer, INFINITE);
+		WaitForSingleObject(ThreadMoveMonsters, INFINITE);
 
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
-		CloseHandle(hMutexEcran);
-	}
 
+	}
+	CloseHandle(hThreadPlayer);
+	CloseHandle(hThreadMonster);	
+	
 	return 0;
 }
 
@@ -275,6 +307,19 @@ void FunctionClear() {
 
 }
 
+/*
+*/
+/*void PrintToConsole(char text[]) {
+
+	
+	WaitForSingleObject(hSemaphore1, INFINITE);
+	printf("%s", text);
+	fflush(stdout);
+
+	ReleaseSemaphore(hSemaphore1, 1, NULL);
+
+}
+*/
 /* 
 Esta função inicializa o avatar do jogador no jogo,
 pondendo tambem definir o modo de jogo e a dificuldade do jogo
@@ -437,87 +482,6 @@ void PrintMonster(Monster monster[]) {
 	}
 }
 
-/*
-Função que inicializa os items e os tesouros no jogo
-*/
-void InitItemPlusTreasure(struct Map *pMap) {
-
-	//item 1
-	pMap->item[0].CodItem = 1;
-	pMap->item[0].PositionItem = 2;
-	strcpy(pMap->item[0].NameItem, "Wood Armor");
-	pMap->item[0].CriticItem = 0;
-	pMap->item[0].DamageItem = 0;
-	pMap->item[0].LifeItem = 0;
-
-
-	//item 2
-	pMap->item[1].CodItem = 2;
-	pMap->item[1].PositionItem = 3;
-	strcpy(pMap->item[1].NameItem, "Wood Sword");
-	pMap->item[1].CriticItem = 0;
-	pMap->item[1].DamageItem = 0;
-	pMap->item[1].LifeItem = 0;
-
-
-	//item 3
-	pMap->item[2].CodItem = 3;
-	pMap->item[2].PositionItem = 8;
-	strcpy(pMap->item[2].NameItem, "Steel Armor");
-	pMap->item[2].CriticItem = 0;
-	pMap->item[2].DamageItem = 0;
-	pMap->item[2].LifeItem = 100;
-
-
-	//item 4
-	pMap->item[3].CodItem = 4;
-	pMap->item[3].PositionItem = 9;
-	strcpy(pMap->item[3].NameItem, "Steel Sword");
-	pMap->item[3].CriticItem = 0;
-	pMap->item[3].DamageItem = 0;
-	pMap->item[3].LifeItem = 0;
-
-
-	//item 5
-	pMap->item[4].CodItem = 5;
-	pMap->item[4].PositionItem = 13;
-	strcpy(pMap->item[4].NameItem, "Gold Armor + Sword");
-	pMap->item[4].CriticItem = 0;
-	pMap->item[4].DamageItem = 0;
-	pMap->item[4].LifeItem = 0;
-
-
-	//Tesouro 1
-	pMap->treasure[0].CodTresure = 1;
-	pMap->treasure[0].PositionTresure = 2;
-	strcpy(pMap->treasure[0].NameTreasure, "Bolsa de Moedas");
-	pMap->treasure[0].Gold = 500;
-
-	//Tesouro 2
-	pMap->treasure[1].CodTresure = 2;
-	pMap->treasure[1].PositionTresure = 3;
-	strcpy(pMap->treasure[1].NameTreasure, "Bau Pequeno");
-	pMap->treasure[1].Gold = 500;
-
-	//Tesouro 3
-	pMap->treasure[2].CodTresure = 3;
-	pMap->treasure[2].PositionTresure = 8;
-	strcpy(pMap->treasure[2].NameTreasure, "Bau Médio");
-	pMap->treasure[2].Gold = 500;
-
-	//Tesouro 4
-	pMap->treasure[3].CodTresure = 4;
-	pMap->treasure[3].PositionTresure = 9;
-	strcpy(pMap->treasure[3].NameTreasure, "Bau Grande");
-	pMap->treasure[3].Gold = 500;
-
-	//Tesouro 5
-	pMap->treasure[4].CodTresure = 5;
-	pMap->treasure[4].PositionTresure = 13;
-	strcpy(pMap->treasure[4].NameTreasure, "Cofre Grande");
-	pMap->treasure[4].Gold = 500;
-
-}
 
 /*
 Nesta função inicializa os objectos do ficheiro txt e transforma os num ficheiro bin
@@ -635,280 +599,6 @@ void InitObejectTreasure(Map *pMap){
 }
 
 /*
-Esta função serve inicia o mapa numa primeira versão antes de implementar a leitura do mapa apartir de um ficheiro
-*/
-int InitMap(Cell cells[]) {
-
-	//cell 0 
-	cells[0].north = 1;
-	cells[0].south = -1;
-	cells[0].west = 20;
-	cells[0].east = 19;
-	cells[0].up = -1;
-	cells[0].down = -1;
-	strcpy(cells[0].descriptionCell, "Bem vido à Vila Sunshine, desejamos lhe a maior sorte para a sua missão!");
-	cells[0].treasureCell = -1;
-	cells[0].itemCell = -1;
-
-	//cell 1 
-	cells[1].north = 4;
-	cells[1].south = 0;
-	cells[1].west = 3;
-	cells[1].east = -1;
-	cells[1].up = 2;
-	cells[1].down = -1;
-	strcpy(cells[1].descriptionCell, "Neste mumento soldado encontraste entre duas arenas, entra lá e descobre o que se passa!");
-	cells[1].treasureCell = -1;
-	cells[1].itemCell = -1;
-
-	//cell 2 
-	cells[2].north = -1;
-	cells[2].south = -1;
-	cells[2].west = -1;
-	cells[2].east = 1;
-	cells[2].up = -1;
-	cells[2].down = 1;
-	strcpy(cells[2].descriptionCell, "Nesta arena podes encontrar uma armadura que te vai dar mais HP");
-	cells[2].treasureCell = 1;
-	cells[2].itemCell = 1;
-
-	//cell 3 
-	cells[3].north = -1;
-	cells[3].south = -1;
-	cells[3].west = -1;
-	cells[3].east = 1;
-	cells[3].up = -1;
-	cells[3].down = -1;
-	strcpy(cells[3].descriptionCell, "Nesta arena podes encontrar uma armadura que te vai dar mais DANO");
-	cells[3].treasureCell = 2;
-	cells[3].itemCell = 2;
-
-	//cell 4 
-	cells[4].north = 7;
-	cells[4].south = 1;
-	cells[4].west = 5;
-	cells[4].east = 6;
-	cells[4].up = -1;
-	cells[4].down = -1;
-	strcpy(cells[4].descriptionCell, "Chegaste a um crusamento podes continar em frente para chegar a arena PRINCIPAL ou ir por um caminho maior");
-	cells[4].treasureCell = -1;
-	cells[4].itemCell = -1;
-
-	//cell 5 
-	cells[5].north = -1;
-	cells[5].south = -1;
-	cells[5].west = 22;
-	cells[5].east = 5;
-	cells[5].up = -1;
-	cells[5].down = -1;
-	strcpy(cells[5].descriptionCell, "Por este caminho vais pela direita");
-	cells[5].treasureCell = -1;
-	cells[5].itemCell = -1;
-
-	//cell 6 
-	cells[6].north = -1;
-	cells[6].south = -1;
-	cells[6].west = 4;
-	cells[6].east = 17;
-	cells[6].up = -1;
-	cells[6].down = -1;
-	strcpy(cells[6].descriptionCell, "Por este caminho vais pela esquerda");
-	cells[6].treasureCell = -1;
-	cells[6].itemCell = -1;
-
-	//cell 7 
-	cells[7].north = 10;
-	cells[7].south = 4;
-	cells[7].west = 9;
-	cells[7].east = 8;
-	cells[7].up = -1;
-	cells[7].down = -1;
-	strcpy(cells[7].descriptionCell, "Neste mumento soldado encontraste entre duas arenas, entra lá e descobre o que se passa!");
-	cells[7].treasureCell = -1;
-	cells[7].itemCell = -1;
-
-	//cell 8 
-	cells[8].north = -1;
-	cells[8].south = -1;
-	cells[8].west = 7;
-	cells[8].east = 1;
-	cells[8].up = -1;
-	cells[8].down = -1;
-	strcpy(cells[8].descriptionCell, "Nesta arena exite uma besta feroz que tens de eliminar!!!");
-	cells[8].treasureCell = 3;
-	cells[8].itemCell = 3;
-
-	//cell 9 
-	cells[9].north = -1;
-	cells[9].south = -1;
-	cells[9].west = -1;
-	cells[9].east = 7;
-	cells[9].up = -1;
-	cells[9].down = -1;
-	strcpy(cells[9].descriptionCell, "Nesta arena vais poder sentir o poder de uma criatura quase tão poderoza como o rei dos monstros");
-	cells[9].treasureCell = 4;
-	cells[9].itemCell = 4;
-
-	//cell 10 
-	cells[10].north = -1;
-	cells[10].south = 7;
-	cells[10].west = 11;
-	cells[10].east = 12;
-	cells[10].up = 13;
-	cells[10].down = -1;
-	strcpy(cells[10].descriptionCell, "Neste mumento soldado ou sobes as escadas e entras na arena principal ou desistes, a escolha é tua");
-	cells[10].treasureCell = -1;
-	cells[10].itemCell = -1;
-
-	//cell 11
-	cells[11].north = -1;
-	cells[11].south = -1;
-	cells[11].west = 14;
-	cells[11].east = 10;
-	cells[11].up = -1;
-	cells[11].down = -1;
-	strcpy(cells[11].descriptionCell, "Por este caminho vais pela direita");
-	cells[11].treasureCell = -1;
-	cells[11].itemCell = -1;
-
-	//cell 12
-	cells[12].north = -1;
-	cells[12].south = -1;
-	cells[12].west = 10;
-	cells[12].east = 15;
-	cells[12].up = -1;
-	cells[12].down = -1;
-	strcpy(cells[12].descriptionCell, "Por este caminho vais pela esquerda");
-	cells[12].treasureCell = -1;
-	cells[12].itemCell = -1;
-
-	//cell 13
-	cells[13].north = -1;
-	cells[13].south = -1;
-	cells[13].west = -1;
-	cells[13].east = -1;
-	cells[13].up = -1;
-	cells[13].down = 10;
-	strcpy(cells[13].descriptionCell, "Muitos parabens pela tua CORAGEM !!! E boa sorte para o teu desafio soldado");
-	cells[13].treasureCell = 5;
-	cells[13].itemCell = 5;
-
-	//cell 14
-	cells[14].north = -1;
-	cells[14].south = 23;
-	cells[14].west = -1;
-	cells[14].east = 11;
-	cells[14].up = -1;
-	cells[14].down = -1;
-	strcpy(cells[14].descriptionCell, "Estas num beco ou vias em direção há saida da vila ou voltas para tras");
-	cells[14].treasureCell = -1;
-	cells[14].itemCell = -1;
-
-	//cell 15
-	cells[15].north = -1;
-	cells[15].south = 16;
-	cells[15].west = 12;
-	cells[15].east = -1;
-	cells[15].up = -1;
-	cells[15].down = -1;
-	strcpy(cells[15].descriptionCell, "Estas num beco ou vias em direção há saida da vila ou voltas para tras");
-	cells[15].treasureCell = -1;
-	cells[15].itemCell = -1;
-
-	//cell 16
-	cells[16].north = 15;
-	cells[16].south = 17;
-	cells[16].west = -1;
-	cells[16].east = -1;
-	cells[16].up = -1;
-	cells[16].down = -1;
-	strcpy(cells[16].descriptionCell, "Nesta rua ou voltas para tras ou continuas em direção saida da vila");
-	cells[16].treasureCell = -1;
-	cells[16].itemCell = -1;
-
-	//cell 17
-	cells[17].north = 16;
-	cells[17].south = 18;
-	cells[17].west = 6;
-	cells[17].east = -1;
-	cells[17].up = -1;
-	cells[17].down = -1;
-	strcpy(cells[17].descriptionCell, "Chegaste a meio da cidade do lado este");
-	cells[17].treasureCell = -1;
-	cells[17].itemCell = -1;
-
-	//cell 18
-	cells[18].north = 17;
-	cells[18].south = 19;
-	cells[18].west = -1;
-	cells[18].east = -1;
-	cells[18].up = -1;
-	cells[18].down = -1;
-	strcpy(cells[18].descriptionCell, "Ou voltas para a saida da vila ou vias em direção ao rei do montro");
-	cells[18].treasureCell = -1;
-	cells[18].itemCell = -1;
-
-	//cell 19
-	cells[19].north = 18;
-	cells[19].south = -1;
-	cells[19].west = 0;
-	cells[19].east = -1;
-	cells[19].up = -1;
-	cells[19].down = -1;
-	strcpy(cells[19].descriptionCell, "Tem coraje e vai em frente teras grandes reconpensas");
-	cells[19].treasureCell = -1;
-	cells[19].itemCell = -1;
-
-	//cell 20
-	cells[20].north = 21;
-	cells[20].south = -1;
-	cells[20].west = -1;
-	cells[20].east = 0;
-	cells[20].up = -1;
-	cells[20].down = -1;
-	strcpy(cells[20].descriptionCell, "Tem coraje e vai em frente teras grandes reconpensas");
-	cells[20].treasureCell = -1;
-	cells[20].itemCell = -1;
-
-	//cell 21
-	cells[21].north = 22;
-	cells[21].south = 20;
-	cells[21].west = -1;
-	cells[21].east = -1;
-	cells[21].up = -1;
-	cells[21].down = -1;
-	strcpy(cells[21].descriptionCell, "Ou voltas para a saida da vila ou vias em direção ao rei do montro");
-	cells[21].treasureCell = -1;
-	cells[21].itemCell = -1;
-
-	//cell 22
-	cells[22].north = 23;
-	cells[22].south = 22;
-	cells[22].west = -1;
-	cells[22].east = 5;
-	cells[22].up = -1;
-	cells[22].down = -1;
-	strcpy(cells[22].descriptionCell, "Chegaste a meio da cidade do lado oeste");
-	cells[22].treasureCell = -1;
-	cells[22].itemCell = -1;
-
-	//cell 23
-	cells[23].north = 14;
-	cells[23].south = 22;
-	cells[23].west = -1;
-	cells[23].east = -1;
-	cells[23].up = -1;
-	cells[23].down = -1;
-	strcpy(cells[23].descriptionCell, "Estas num beco ou vias em direção há saida da vila ou voltas para tras");
-	cells[23].treasureCell = -1;
-	cells[23].itemCell = -1;
-
-
-
-	return 24;
-}
-
-/*
 Esta função carrega o mapa do jogo de um ficheiro com o nome "map.txt"
 */
 void LoadMapFromFile(struct Map *pMap) {
@@ -963,27 +653,10 @@ void LoadMapFromFile(struct Map *pMap) {
 }
 
 /*
-Esta função mostra todas as salas do jogo no ecrã
-*/
-void PrintMapFromFile(Map *pMap) {
-	for (int i = 0; i < pMap->nCells; i++) {
-		printf("\n");
-		printf("Norte: %d \n", pMap->cell[i].north);
-		printf("Sul: %d \n", pMap->cell[i].south);
-		printf("Oeste: %d \n", pMap->cell[i].west);
-		printf("Este: %d \n", pMap->cell[i].east);
-		printf("Cima: %d \n", pMap->cell[i].up);
-		printf("Baixo: %d \n", pMap->cell[i].down);
-		printf("Item: %d \n", pMap->cell[i].itemCell);
-		printf("Tesouro: %d \n", pMap->cell[i].treasureCell);
-		printf("Descrição: %s \n", pMap->cell[i].descriptionCell);
-	}
-}
-
-/*
 Esta função é o que permite o jogador navegar no mapa e usar algumas das funçoes implementadas
 */
 void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
+	
 	int option;
 	//FunctionClear();
 	printf("\n");
@@ -998,6 +671,7 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 	printf("\n");
 	printf("Escolhe a direção que queres soldado: \n");
 	scanf("%d", &option);
+	//WaitForSingleObject(hSemaphore1, INFINITE);
 	FunctionClear();
 	switch (option)
 	{
@@ -1053,6 +727,8 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		printf("O valor introduzido é invalido!!! \n Insira novamente um numero de 1 a 8 \n");
 		break;
 	}
+	
+	
 }
 
 /*
@@ -1277,7 +953,7 @@ void Battle(struct Player *pPlayer, struct Map *pMap, Monster monster[]) {
 			}
 		} // end while
 	} // end for
-}
+}                                          
 
 /*
 Esta função guarda o jogo num ficheiro binário em que o nume é atribuido pelo utilizador
