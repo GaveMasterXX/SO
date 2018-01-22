@@ -24,7 +24,8 @@
 #define EMPTY _T( ' ' )
 #define MAX_THREADS 20
 
-HANDLE hSemaphore1;
+HANDLE hMutex;
+HANDLE hMutexEcran;
 
 
 /*
@@ -129,17 +130,19 @@ void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um fiche
 /*THREADS BEGIN*/
 DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 {
+	
 	PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
-	ReleaseSemaphore(hSemaphore1, 1, NULL);
+	ReleaseMutex(hMutex);
 	return 0;
 }
 
 DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 {
-	WaitForSingleObject(hSemaphore1, INFINITE);
+	WaitForSingleObject(hMutex, INFINITE);
 
 	MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
-	ReleaseSemaphore(hSemaphore1, 1, NULL);
+
+	ReleaseMutex(hMutex);
 	return 0;
 }
 
@@ -154,18 +157,20 @@ int main()
 	int i;
 	int countThreads = 0;
 
-	hSemaphore1 = CreateSemaphore(
-		NULL,                     // default security attributes
-		0,                        // int value
-		1,						  // MAXIMUM VALUE
-		NULL);                    // unnamed mutex
+	hMutex = CreateMutex(
+		NULL,                       // default security attributes
+		FALSE,                      // initially not owned
+		NULL);                      // unnamed mutex
 
-	printf("Thread Principal: Vou criar varios threads.\n");
+	hMutexEcran = CreateMutex(
+		NULL,                       // default security attributes
+		FALSE,                      // initially not owned
+		NULL);                      // unnamed mutex
 
 
-	//Array de identificadores de threads
-	HANDLE  hThreadMonster[MAX_THREADS];
 	HANDLE hThreadPlayer;
+	HANDLE hThreadMonster;
+
 	struct Player player;
 	struct Monster monster[MAX_MOSNTERS];
 	struct Cell cells[MAX_CELLS];
@@ -212,72 +217,76 @@ int main()
 	InitObejectItemBin(&map);
 	InitObejectTreasure(&map);
 
+
+	for (i = 0; i < monster[0].nMonsters; i++) {
+
+		strcpy(threads.monsters.nameMosnter, monster[i].nameMosnter);
+		threads.monsters.cellMonster = monster[i].cellMonster;
+		threads.monsters.criticMonster = monster[i].criticMonster;
+		threads.monsters.damageMonster = monster[i].damageMonster;
+		threads.monsters.itemMonster = monster[i].itemMonster;
+		threads.monsters.lifeMonster = monster[i].lifeMonster;
+		threads.monsters.treasureMonster = monster[i].treasureMonster;
+		threads.monsters.nMonsters = monster[0].nMonsters;
+	}
+
+	for (i = 0; i < map.nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
+		threads.map.cell[i].north = map.cell[i].north;
+		threads.map.cell[i].south = map.cell[i].south;
+		threads.map.cell[i].west = map.cell[i].west;
+		threads.map.cell[i].east = map.cell[i].east;
+		threads.map.cell[i].up = map.cell[i].up;
+		threads.map.cell[i].down = map.cell[i].down;
+		strcpy(threads.map.cell[i].descriptionCell, map.cell[i].descriptionCell);
+	}
+	// falta descrição do mapa, add data from player
+
+
+	threads.Player = player;
+
+
+	hThreadPlayer = CreateThread(
+		NULL,              // default security attributes
+		0,                 // use default stack size  
+		ThreadMovePlayer,        // thread function 
+		&threads,             // argument to thread function 
+		0,                 // use default creation flags 
+		NULL);   // returns the thread identifier 
+
+				 //WaitForSingleObject(hThreadPlayer, INFINITE);
+
+				 //MonstersWalk(&player, &map, monster);
+
+	hThreadMonster = CreateThread(
+		NULL,              // default security attributes
+		0,                 // use default stack size  
+		ThreadMoveMonsters,        // thread function 
+		&threads,             // argument to thread function 
+		0,                 // use default creation flags 
+		NULL);   // returns the thread identifier
+
+
 	while (player.cellPlayer != (map.nCells + 1)) {
 		//PlayerWalk(&player, &map, monster);
 
 		//MonstersWalk(&player, &map, monster);
+		
+		WaitForSingleObject(hThreadPlayer, INFINITE);
 
-		for (i = 0; i < monster[0].nMonsters; i++) {
-
-			strcpy(threads.monsters.nameMosnter, monster[i].nameMosnter);
-			threads.monsters.cellMonster = monster[i].cellMonster;
-			threads.monsters.criticMonster = monster[i].criticMonster;
-			threads.monsters.damageMonster = monster[i].damageMonster;
-			threads.monsters.itemMonster = monster[i].itemMonster;
-			threads.monsters.lifeMonster = monster[i].lifeMonster;
-			threads.monsters.treasureMonster = monster[i].treasureMonster;
-			threads.monsters.nMonsters = monster[0].nMonsters;
-		}
-
-		for (i = 0; i < map.nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
-			threads.map.cell[i].north = map.cell[i].north;
-			threads.map.cell[i].south = map.cell[i].south;
-			threads.map.cell[i].west = map.cell[i].west;
-			threads.map.cell[i].east = map.cell[i].east;
-			threads.map.cell[i].up = map.cell[i].up;
-			threads.map.cell[i].down = map.cell[i].down;
-			strcpy(threads.map.cell[i].descriptionCell, map.cell[i].descriptionCell);
-		}
-		// falta descrição do mapa, add data from player
-
-
-		threads.Player = player;
-
-		hThreadPlayer = CreateThread(
-			NULL,              // default security attributes
-			0,                 // use default stack size  
-			ThreadMovePlayer,        // thread function 
-			&threads,             // argument to thread function 
-			0,                 // use default creation flags 
-			NULL);   // returns the thread identifier 
-
-
-
-
-		//Criaçao dos vários threads
-		for (i = 0; i < monster[0].nMonsters; i++) {
-
-			hThreadMonster[i] = CreateThread(
-				NULL,              // default security attributes
-				0,                 // use default stack size  
-				ThreadMoveMonsters,        // thread function 
-				&threads,             // argument to thread function 
-				0,                 // use default creation flags 
-				NULL);   // returns the thread identifier
-
-		}
-
-
-		WaitForSingleObject(ThreadMovePlayer, INFINITE);
-		WaitForSingleObject(ThreadMoveMonsters, INFINITE);
+		WaitForSingleObject(hThreadMonster, INFINITE);
+		
+		
 
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
 
 	}
 	CloseHandle(hThreadPlayer);
-	CloseHandle(hThreadMonster);	
-	
+	CloseHandle(hThreadMonster);
+
+	CloseHandle(hMutex);
+	CloseHandle(hMutexEcran);
+
 	return 0;
 }
 
@@ -307,19 +316,14 @@ void FunctionClear() {
 
 }
 
-/*
-*/
-/*void PrintToConsole(char text[]) {
 
-	
-	WaitForSingleObject(hSemaphore1, INFINITE);
+void PrintToConsole(char text[]) {
+	WaitForSingleObject(hMutexEcran, INFINITE);
 	printf("%s", text);
 	fflush(stdout);
-
-	ReleaseSemaphore(hSemaphore1, 1, NULL);
-
+	ReleaseMutex(hMutexEcran);
 }
-*/
+
 /* 
 Esta função inicializa o avatar do jogador no jogo,
 pondendo tambem definir o modo de jogo e a dificuldade do jogo
