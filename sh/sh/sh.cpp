@@ -127,22 +127,29 @@ void SaveGame(Player *pPlayer, Monster monster[]); // garda o jogo num ficheiro 
 void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um ficheiro em binário
 
 
-/*THREADS BEGIN*/
+/*THREADS BEGIN*//*
+DWORD WINAPI ThreadControler(LPVOID lpParam)
+{
+
+	WaitForSingleObject(ThreadMovePlayer, INFINITE);
+	
+	//ReleaseMutex(hMutexEcran);
+	return 0;
+}*/
 DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 {
-	
+	//WaitForSingleObject(hMutexEcran, INFINITE);
 	PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
-	ReleaseMutex(hMutex);
+	//ReleaseMutex(hMutexEcran);
 	return 0;
 }
 
 DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 {
-	WaitForSingleObject(hMutex, INFINITE);
-
+	
+	WaitForSingleObject(hMutexEcran, INFINITE);
 	MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
-
-	ReleaseMutex(hMutex);
+	ReleaseMutex(hMutexEcran);
 	return 0;
 }
 
@@ -240,8 +247,6 @@ int main()
 		strcpy(threads.map.cell[i].descriptionCell, map.cell[i].descriptionCell);
 	}
 	// falta descrição do mapa, add data from player
-
-
 	threads.Player = player;
 
 
@@ -271,19 +276,16 @@ int main()
 
 		//MonstersWalk(&player, &map, monster);
 		
-		WaitForSingleObject(hThreadPlayer, INFINITE);
-
-		WaitForSingleObject(hThreadMonster, INFINITE);
+		WaitForSingleObject(ThreadMovePlayer, INFINITE);
+		WaitForSingleObject(ThreadMoveMonsters, INFINITE);
 		
-		
-
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
-
 	}
+
+
 	CloseHandle(hThreadPlayer);
 	CloseHandle(hThreadMonster);
-
 	CloseHandle(hMutex);
 	CloseHandle(hMutexEcran);
 
@@ -660,7 +662,7 @@ void LoadMapFromFile(struct Map *pMap) {
 Esta função é o que permite o jogador navegar no mapa e usar algumas das funçoes implementadas
 */
 void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
-	
+
 	int option;
 	//FunctionClear();
 	printf("\n");
@@ -731,8 +733,6 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		printf("O valor introduzido é invalido!!! \n Insira novamente um numero de 1 a 8 \n");
 		break;
 	}
-	
-	
 }
 
 /*
