@@ -137,28 +137,32 @@ DWORD WINAPI ThreadControler(LPVOID lpParam)
 	//ReleaseMutex(hMutexEcran);
 	return 0;
 }*/
+/*
 DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 {
-	//while (&((struct Threads *) lpParam)->Player.cellPlayer != (&((struct Threads *) lpParam)->map.nCells + 1)) {
-		WaitForSingleObject(hMutexEcran, INFINITE);
-		PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
-		/*WaitForSingleObject(hMutexEcran, INFINITE);
-		Battle(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
-		EndGame(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->monsters, &((struct Threads *) lpParam)->map);*/
-		ReleaseMutex(hMutexEcran);
-	//}
-	return 0;
-}
+//while (&((struct Threads *) lpParam)->Player.cellPlayer != (&((struct Threads *) lpParam)->map.nCells + 1)) {
+WaitForSingleObject(hMutex, INFINITE);
+PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
+/*WaitForSingleObject(hMutexEcran, INFINITE);
+Battle(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
+EndGame(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->monsters, &((struct Threads *) lpParam)->map);
+ReleaseMutex(hMutex);
+//}
+return 0;
+} */
+
 
 DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 {
-	
-	WaitForSingleObject(hMutexEcran, INFINITE);
-	MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
-	ReleaseMutex(hMutexEcran);
+	time_t t;
+	srand((unsigned)time_t(&t));		// inicializa o random number generator
+	do
+	{
+		MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
+		Sleep(1000 + (rand() % 20000));
+	} while (true);
 	return 0;
 }
-
 
 /*THREADS END*/
 /*
@@ -181,7 +185,7 @@ int main()
 		NULL);                      // unnamed mutex
 
 
-	HANDLE hThreadPlayer;
+	//HANDLE hThreadPlayer;
 	HANDLE hThreadMonster;
 
 	struct Player player;
@@ -232,17 +236,17 @@ int main()
 
 	UpdateThreads(&player, monster, &map, &threads);
 
-	hThreadPlayer = CreateThread(
-		NULL,              // default security attributes
-		0,                 // use default stack size  
-		ThreadMovePlayer,        // thread function 
-		&threads,             // argument to thread function 
-		0,                 // use default creation flags 
-		NULL);   // returns the thread identifier 
+	/*hThreadPlayer = CreateThread(
+	NULL,              // default security attributes
+	0,                 // use default stack size
+	ThreadMovePlayer,        // thread function
+	&threads,             // argument to thread function
+	0,                 // use default creation flags
+	NULL);   // returns the thread identifier
 
-				 //WaitForSingleObject(hThreadPlayer, INFINITE);
+	//WaitForSingleObject(hThreadPlayer, INFINITE);
 
-				 //MonstersWalk(&player, &map, monster);
+	//MonstersWalk(&player, &map, monster);*/
 
 	hThreadMonster = CreateThread(
 		NULL,              // default security attributes
@@ -254,20 +258,15 @@ int main()
 
 
 	while (player.cellPlayer != (map.nCells + 1)) {
-		//PlayerWalk(&player, &map, monster);
-
+		PlayerWalk(&player, &map, monster);
 		//MonstersWalk(&player, &map, monster);
-		
-		WaitForSingleObject(ThreadMovePlayer, INFINITE);
-		WaitForSingleObject(ThreadMoveMonsters, INFINITE);
-		UpdateThreads(&player, monster, &map, &threads);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
 		
 	}
 
 
-	CloseHandle(hThreadPlayer);
+	//CloseHandle(hThreadPlayer);
 	CloseHandle(hThreadMonster);
 
 	CloseHandle(hMutex);
