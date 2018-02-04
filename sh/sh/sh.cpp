@@ -133,7 +133,6 @@ DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 	do
 	{
 		PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
-		//UpdateThreads(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->monsters,  &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam), 1);
 	} while (true);
 
 	return 0;
@@ -147,7 +146,6 @@ DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 	do
 	{
 		MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
-		//UpdateThreads(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->monsters, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam), 1);
 		Sleep(1000 + (rand() % 20000));
 	} while (true);
 	return 0;
@@ -318,8 +316,8 @@ void InsertPlayer(Player *pPlayer) {
 		(strcmp(pPlayer->namePlayer, "super user") == 0) || (strcmp(pPlayer->namePlayer, "Super User") == 0)) {
 
 		// selecionar modo de jogo / dificuldade
-		pPlayer->energyPlayer = 10000;
-		pPlayer->damage = 1000;
+		pPlayer->energyPlayer = 1000000;
+		pPlayer->damage = 10000;
 		pPlayer->critic = 200;
 		pPlayer->itemPlayer = 5;
 		pPlayer->cellPlayer = 0;
@@ -328,9 +326,9 @@ void InsertPlayer(Player *pPlayer) {
 	else {
 
 		// selecionar modo de jogo / dificuldade
-		pPlayer->energyPlayer = 100;
-		pPlayer->damage = 50;
-		pPlayer->critic = 10;
+		pPlayer->energyPlayer = 200;
+		pPlayer->damage = 60;
+		pPlayer->critic = 20;
 		pPlayer->itemPlayer = 0;
 		pPlayer->cellPlayer = 0;
 		pPlayer->treasurePlayer = 0;
