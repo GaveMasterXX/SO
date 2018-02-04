@@ -96,7 +96,7 @@ struct SaveGame {
 };
 
 struct Threads {
-	struct Monster monsters;
+	struct Monster monsters[MAX_MOSNTERS];
 	struct Player Player;
 	struct Map map;
 };
@@ -125,24 +125,15 @@ void EndGame(Player *pPlayer, Monster monster[], Map *pMap);/*Função que determi
 
 void SaveGame(Player *pPlayer, Monster monster[]); // garda o jogo num ficheiro em binário
 void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um ficheiro em binário
-void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads);
+void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads, int controller);
 
-
-/*THREADS BEGIN*//*
-DWORD WINAPI ThreadControler(LPVOID lpParam)
-{
-
-	WaitForSingleObject(ThreadMovePlayer, INFINITE);
-	
-	//ReleaseMutex(hMutexEcran);
-	return 0;
-}*/
 
 DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 {
 	do
 	{
-		PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
+		PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
+		//UpdateThreads(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->monsters,  &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam), 1);
 	} while (true);
 
 	return 0;
@@ -155,7 +146,8 @@ DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 	srand((unsigned)time_t(&t));		// inicializa o random number generator
 	do
 	{
-		MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, &((struct Threads *) lpParam)->monsters);
+		MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
+		//UpdateThreads(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->monsters, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam), 1);
 		Sleep(1000 + (rand() % 20000));
 	} while (true);
 	return 0;
@@ -231,7 +223,7 @@ int main()
 	InitObejectItemBin(&map);
 	InitObejectTreasure(&map);
 
-	UpdateThreads(&player, monster, &map, &threads);
+	UpdateThreads(&player, monster, &map, &threads, 0);
 
 	hThreadPlayer = CreateThread(
 	NULL,              // default security attributes
@@ -250,11 +242,23 @@ int main()
 		NULL);   // returns the thread identifier
 
 
-	while (player.energyPlayer > 0) {
+	while (player.energyPlayer > 0 && player.cellPlayer <= (map.nCells + 1)) {
 		//PlayerWalk(&player, &map, monster);
 		//MonstersWalk(&player, &map, monster);
+		UpdateThreads(&player, monster, &map, &threads, 1);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
+		UpdateThreads(&player, monster, &map, &threads, 0);
+
+
+			if(monster[5].lifeMonster <= 0 && monster[6].lifeMonster <= 0 && monster[7].lifeMonster <= 0 && monster[8].lifeMonster <= 0) {
+				//CloseHandle(hThreadPlayer);
+				CloseHandle(hThreadMonster);
+
+				CloseHandle(hMutex);
+				CloseHandle(hMutexEcran);
+			}
+		
 	}
 
 
@@ -708,6 +712,7 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		printf("O valor introduzido é invalido!!! \n Insira novamente um numero de 1 a 8 \n");
 		break;
 	}
+	
 }
 
 /*
@@ -1030,30 +1035,62 @@ void EndGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap)
 
 
 /*
+	Esta função passa os dados da estrutura das threads para as estruturas do player, do monstro e do mapa
+	e vice verça
 */
-void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads){
+void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads, int controller){
 
-	for (int i = 0; i < monster[0].nMonsters; i++) {
+	if (controller == 0) {
+		for (int i = 0; i < monster[0].nMonsters; i++) {
 
-		strcpy(pThreads->monsters.nameMosnter, monster[i].nameMosnter);
-		pThreads->monsters.cellMonster = monster[i].cellMonster;
-		pThreads->monsters.criticMonster = monster[i].criticMonster;
-		pThreads->monsters.damageMonster = monster[i].damageMonster;
-		pThreads->monsters.itemMonster = monster[i].itemMonster;
-		pThreads->monsters.lifeMonster = monster[i].lifeMonster;
-		pThreads->monsters.treasureMonster = monster[i].treasureMonster;
-		pThreads->monsters.nMonsters = monster[0].nMonsters;
+			strcpy(pThreads->monsters[i].nameMosnter, monster[i].nameMosnter);
+			pThreads->monsters[i].cellMonster = monster[i].cellMonster;
+			pThreads->monsters[i].criticMonster = monster[i].criticMonster;
+			pThreads->monsters[i].damageMonster = monster[i].damageMonster;
+			pThreads->monsters[i].itemMonster = monster[i].itemMonster;
+			pThreads->monsters[i].lifeMonster = monster[i].lifeMonster;
+			pThreads->monsters[i].treasureMonster = monster[i].treasureMonster;
+			pThreads->monsters[i].nMonsters = monster[0].nMonsters;
+		}
+
+		for (int i = 0; i < pMap->nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
+			pThreads->map.cell[i].north = pMap->cell[i].north;
+			pThreads->map.cell[i].south = pMap->cell[i].south;
+			pThreads->map.cell[i].west = pMap->cell[i].west;
+			pThreads->map.cell[i].east = pMap->cell[i].east;
+			pThreads->map.cell[i].up = pMap->cell[i].up;
+			pThreads->map.cell[i].down = pMap->cell[i].down;
+			strcpy(pThreads->map.cell[i].descriptionCell, pMap->cell[i].descriptionCell);
+		}
+
+		//  add data from player
+		pThreads->Player = *pPlayer;
 	}
+	else if (controller == 1) {
+		for (int i = 0; i < monster[0].nMonsters; i++) {
 
-	for (int i = 0; i < pMap->nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
-		pThreads->map.cell[i].north = pMap->cell[i].north;
-		pThreads->map.cell[i].south = pMap->cell[i].south;
-		pThreads->map.cell[i].west = pMap->cell[i].west;
-		pThreads->map.cell[i].east = pMap->cell[i].east;
-		pThreads->map.cell[i].up = pMap->cell[i].up;
-		pThreads->map.cell[i].down = pMap->cell[i].down;
-		strcpy(pThreads->map.cell[i].descriptionCell, pMap->cell[i].descriptionCell);
+			strcpy(monster[i].nameMosnter, pThreads->monsters[i].nameMosnter);
+			monster[i].cellMonster = pThreads->monsters[i].cellMonster;
+			monster[i].criticMonster = pThreads->monsters[i].criticMonster;
+			monster[i].damageMonster = pThreads->monsters[i].damageMonster;
+			monster[i].itemMonster = pThreads->monsters[i].itemMonster ;
+			monster[i].lifeMonster = pThreads->monsters[i].lifeMonster;
+			monster[i].treasureMonster = pThreads->monsters[i].treasureMonster;
+			monster[0].nMonsters = pThreads->monsters[i].nMonsters;
+		}
+
+		for (int i = 0; i < pMap->nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
+			pMap->cell[i].north = pThreads->map.cell[i].north;
+			pMap->cell[i].south = pThreads->map.cell[i].south;
+			pMap->cell[i].west = pThreads->map.cell[i].west;
+			pMap->cell[i].east = pThreads->map.cell[i].east;
+			pMap->cell[i].up = pThreads->map.cell[i].up;
+			pMap->cell[i].down = pThreads->map.cell[i].down;
+			strcpy(pMap->cell[i].descriptionCell, pThreads->map.cell[i].descriptionCell);
+		}
+
+		//  add data from player
+		*pPlayer = pThreads->Player;
 	}
-	//  add data from player
-	pThreads->Player = *pPlayer;
+	
 }
