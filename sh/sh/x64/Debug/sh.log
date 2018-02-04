@@ -1,13 +1,13 @@
-﻿Build started 03/02/2018 17:24:06.
+﻿Build started 04/02/2018 13:32:22.
      1>Project "D:\Rute\Faculdade\SistemasOperativos\TG2\SO\sh\sh\sh.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"x64\Debug\sh.pch" /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt sh.cpp
          sh.cpp
-     1>sh.cpp(205): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>sh.cpp(206): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\stdio.h(283) : see declaration of 'scanf'
-     1>sh.cpp(171): warning C4101: 'i' : unreferenced local variable
-     1>sh.cpp(193): warning C4101: 'nCells' : unreferenced local variable
-     1>sh.cpp(190): warning C4101: 'cells' : unreferenced local variable
+     1>sh.cpp(172): warning C4101: 'i' : unreferenced local variable
+     1>sh.cpp(194): warning C4101: 'nCells' : unreferenced local variable
+     1>sh.cpp(191): warning C4101: 'cells' : unreferenced local variable
      1>sh.cpp(311): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\stdio.h(283) : see declaration of 'scanf'
      1>sh.cpp(357): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
@@ -83,4 +83,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:01.07
+Time Elapsed 00:00:00.65

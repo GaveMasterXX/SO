@@ -126,6 +126,7 @@ void EndGame(Player *pPlayer, Monster monster[], Map *pMap);/*Função que determi
 void SaveGame(Player *pPlayer, Monster monster[]); // garda o jogo num ficheiro em binário
 void LoadGame(Player *pPlayer, Monster monster[]); // carrega o jogo de um ficheiro em binário
 void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads);
+void UpdateGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads);
 
 
 /*THREADS BEGIN*//*
@@ -251,8 +252,7 @@ int main()
 
 
 	while (player.energyPlayer > 0) {
-		//PlayerWalk(&player, &map, monster);
-		//MonstersWalk(&player, &map, monster);
+		UpdateGame(&player, monster, &map, &threads);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
 	}
@@ -1056,4 +1056,30 @@ void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map 
 	}
 	//  add data from player
 	pThreads->Player = *pPlayer;
+}
+
+void UpdateGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads) {
+	for (int i = 0; i < monster[0].nMonsters; i++) {
+
+		//strcpy(monster[i].nameMosnter, pThreads->monsters.nameMosnter);
+		monster[i].cellMonster = pThreads->monsters.cellMonster;
+		monster[i].criticMonster = pThreads->monsters.criticMonster;
+		monster[i].damageMonster = pThreads->monsters.damageMonster;
+		monster[i].itemMonster = pThreads->monsters.itemMonster;
+		monster[i].lifeMonster = pThreads->monsters.lifeMonster;
+		monster[i].treasureMonster = pThreads->monsters.treasureMonster;
+		monster[0].nMonsters = pThreads->monsters.nMonsters;
+	}
+
+	for (int i = 0; i < pMap->nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
+		pMap->cell[i].north = pThreads->map.cell[i].north;
+		pMap->cell[i].south = pThreads->map.cell[i].south;
+		pMap->cell[i].west = pThreads->map.cell[i].west;
+		pMap->cell[i].east = pThreads->map.cell[i].east;
+		pMap->cell[i].up = pThreads->map.cell[i].up;
+		pMap->cell[i].down = pThreads->map.cell[i].down;
+		//strcpy(pMap->cell[i].descriptionCell, pThreads->map.cell[i].descriptionCell);
+	}
+	//  add data from player
+	*pPlayer = pThreads->Player;
 }
