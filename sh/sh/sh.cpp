@@ -24,7 +24,7 @@
 #define EMPTY _T( ' ' )
 #define MAX_THREADS 20
 
-HANDLE hMutex;
+HANDLE hMutexMonster;
 HANDLE hMutexEcran;
 
 
@@ -146,7 +146,6 @@ DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 
 	do
 	{
-
 		MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
 		Sleep(1000 + (rand() % 20000));	} while (true);
 	return 0;
@@ -162,7 +161,7 @@ int main()
 	int i;
 	int countThreads = 0;
 
-	hMutex = CreateMutex(
+	hMutexMonster = CreateMutex(
 		NULL,                       // default security attributes
 		FALSE,                      // initially not owned
 		NULL);                      // unnamed mutex
@@ -241,7 +240,7 @@ int main()
 		NULL);   // returns the thread identifier
 
 
-	while (player.cellPlayer <= (map.nCells + 1)) {
+	while (true) {				//player.cellPlayer <= (map.nCells + 1
 		//PlayerWalk(&player, &map, monster);
 		//MonstersWalk(&player, &map, monster);
 
@@ -255,8 +254,9 @@ int main()
 
 			if (monster[5].lifeMonster <= 0 && monster[6].lifeMonster <= 0 && monster[7].lifeMonster <= 0 && monster[8].lifeMonster <= 0) {
 				//CloseHandle(hThreadPlayer);
+				WaitForSingleObject(hThreadMonster, INFINITE);
 				CloseHandle(hThreadMonster);
-
+				//CloseHandle(hMutexMonster);
 				//CloseHandle(hMutex);
 				//CloseHandle(hMutexEcran);
 			}
@@ -267,7 +267,7 @@ int main()
 		CloseHandle(hThreadPlayer);
 		CloseHandle(hThreadMonster);
 
-		CloseHandle(hMutex);
+		CloseHandle(hMutexMonster);
 		CloseHandle(hMutexEcran);
 
 		return 0;
