@@ -143,11 +143,12 @@ DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 {
 	time_t t;
 	srand((unsigned)time_t(&t));		// inicializa o random number generator
+
 	do
 	{
+
 		MonstersWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
-		Sleep(1000 + (rand() % 20000));
-	} while (true);
+		Sleep(1000 + (rand() % 20000));	} while (true);
 	return 0;
 }
 
@@ -240,9 +241,12 @@ int main()
 		NULL);   // returns the thread identifier
 
 
-	while (player.energyPlayer > 0 && player.cellPlayer <= (map.nCells + 1)) {
+	while (player.cellPlayer <= (map.nCells + 1)) {
 		//PlayerWalk(&player, &map, monster);
 		//MonstersWalk(&player, &map, monster);
+
+		//WaitForSingleObject(hThreadPlayer, INFINITE);
+		//WaitForSingleObject(hThreadMonster, INFINITE);
 		UpdateThreads(&player, monster, &map, &threads, 1);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
@@ -717,11 +721,13 @@ int main()
 	Esta Função faz com que os monstros do indice 5 a 7 andem pelo mapa de forma aleatória e sendo estes escolhidos de forma aleatória
 	*/
 	void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
-		int randMoveMonster = rand() % 6 + 1;
-		int randMonster = 0;
-
-		while (randMonster < 5 && randMonster > 8) {
-			randMonster = rand() % 8 + 5;
+		time_t t;
+		srand((unsigned)time_t(&t));
+		int randMoveMonster = rand() % 6;
+		int randMonster =  rand() % 8;
+		while ((randMonster < 5) && (randMonster > 8)) {
+			randMonster++;
+			randMonster = rand() % 8;
 		}
 
 
@@ -853,12 +859,17 @@ int main()
 				break;
 			}
 		}
+		randMoveMonster++;
+		randMonster++;
 	}
 
 	/*
 	Nesta Função o jogador batalha com um monstro ou varios caso exista algum monstro na sua cela
 	*/
 	void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
+		time_t t;
+		srand((unsigned)time_t(&t));
+
 		int randCriticPlayer = 0; // é sorteado um valor de ataque critico
 		int randAtkPlayer = 0; //O Player acerta o ataque ou falha
 		int newatkPlayer = 0; //Novo valor de ataque do jogador
@@ -869,7 +880,7 @@ int main()
 
 		for (int i = 0; i < monster[0].nMonsters; i++) {// enquanto houver monstros na sala o jodador vai lutando contra eles
 
-			while (pPlayer->cellPlayer == monster[i].cellMonster && pPlayer->energyPlayer > 0 && monster[i].lifeMonster > 0) {
+			while (pPlayer->cellPlayer == monster[i].cellMonster && pPlayer->energyPlayer > 0 && monster[i].lifeMonster > 0 && monster[i].cellMonster == pPlayer->cellPlayer) {
 				randAtkPlayer = rand() % 6;
 				randCriticPlayer = rand() % pPlayer->critic;
 				newatkPlayer = ((pPlayer->damage * randCriticPlayer) / 100);
