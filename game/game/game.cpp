@@ -405,6 +405,7 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 
 	int option;
 	//FunctionClear();
+	WaitForSingleObject(hMutexEcran, INFINITE);
 	printf("\n");
 	printf(" --------------------------------------------------------------------\n");
 	printf(" Para andar na aldeia seleciona uma das opções abaixo Soldado\n");
@@ -416,13 +417,15 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 	printf("%s", pMap->cell[pPlayer->cellPlayer].descriptionCell);
 	printf("\n");
 	printf("Escolhe a direção que queres soldado: \n");
+	ReleaseMutex(hMutexEcran);
 	scanf("%d", &option);
-	FunctionClear();
+
+	//FunctionClear();
 	switch (option)
 	{
 	case 1:
 		if (pMap->cell[pPlayer->cellPlayer].north == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else {
 			pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].north;
@@ -430,31 +433,31 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		break;
 	case 2:
 		if (pMap->cell[pPlayer->cellPlayer].south == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].south; }
 		break;
 	case 3:
 		if (pMap->cell[pPlayer->cellPlayer].west == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].west; }
 		break;
 	case 4:
 		if (pMap->cell[pPlayer->cellPlayer].east == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].east; }
 		break;
 	case 5:
 		if (pMap->cell[pPlayer->cellPlayer].up == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].up; }
 		break;
 	case 6:
 		if (pMap->cell[pPlayer->cellPlayer].down == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].down; }
 		break;
@@ -472,7 +475,6 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		printf("O valor introduzido é invalido!!! \n Insira novamente um numero de 1 a 8 \n");
 		break;
 	}
-
 }
 
 /*
@@ -481,7 +483,10 @@ Esta Função faz com que os monstros do indice 5 a 7 andem pelo mapa de forma ale
 void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
 	srand(time(NULL));
 	int randMoveMonster = rand() % 6;
-	int randMonster = 1;
+	int randMonster = rand() % monster[0].nMonsters;
+	while ((randMonster < 5) && (randMonster > 8)) {
+		randMonster = rand() % monster[0].nMonsters;
+	}
 
 
 	if ((strcmp(pPlayer->namePlayer, "SU") == 0) || (strcmp(pPlayer->namePlayer, "su") == 0) ||
@@ -490,63 +495,71 @@ void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monst
 		{
 		case 1:
 			if (pMap->cell[monster[randMonster].cellMonster].north == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].north;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 2:
 			if (pMap->cell[monster[randMonster].cellMonster].south == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].south;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 3:
 			if (pMap->cell[monster[randMonster].cellMonster].west == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].west;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 4:
 			if (pMap->cell[monster[randMonster].cellMonster].east == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].east;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 5:
 			if (pMap->cell[monster[randMonster].cellMonster].up == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			break;
 		case 6:
 			if (pMap->cell[monster[randMonster].cellMonster].down == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else
 			{
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			break;
 		default:
@@ -612,6 +625,8 @@ void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monst
 			break;
 		}
 	}
+	randMoveMonster++;
+	randMonster++;
 }
 
 /*
