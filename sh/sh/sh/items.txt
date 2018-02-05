@@ -1,0 +1,14 @@
+1 2 0 0 250
+Armadura de Madeira
+
+2 3 10 1 0
+Espada de Madeira
+
+3 8 0 3 0
+Armadura de Aço
+
+4 9 20 4 300
+Espada de Aço
+
+5 13 100 5 400
+Armadora e Espada de Ouro
