@@ -8,6 +8,7 @@
 #include <locale.h>
 #include <string.h>
 #include "windows.h"
+#include <time.h>
 
 
 
@@ -132,7 +133,9 @@ DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 {
 	do
 	{
+		
 		PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
+		
 	} while (true);
 
 	return 0;
@@ -141,8 +144,7 @@ DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 
 DWORD WINAPI ThreadMoveMonsters(LPVOID lpParam)
 {
-	time_t t;
-	srand((unsigned)time_t(&t));		// inicializa o random number generator
+	srand(time(NULL));
 
 	do
 	{
@@ -180,7 +182,7 @@ int main()
 	struct Monster monster[MAX_MOSNTERS];
 	struct Cell cells[MAX_CELLS];
 	struct Map map;
-	struct Threads threads;
+	struct Threads threads [MAX_THREADS];
 	int nCells;
 
 	printf("--------------------------------\n");
@@ -222,13 +224,13 @@ int main()
 	InitObejectItemBin(&map);
 	InitObejectTreasure(&map);
 
-	UpdateThreads(&player, monster, &map, &threads, 0);
+	UpdateThreads(&player, monster, &map, threads, 0);
 
 	hThreadPlayer = CreateThread(
 		NULL,              // default security attributes
 		0,                 // use default stack size
 		ThreadMovePlayer,        // thread function
-		&threads,             // argument to thread function
+		&threads[0],           // argument to thread function
 		0,                 // use default creation flags
 		NULL);   // returns the thread identifier
 
@@ -236,7 +238,7 @@ int main()
 		NULL,              // default security attributes
 		0,                 // use default stack size  
 		ThreadMoveMonsters,        // thread function 
-		&threads,             // argument to thread function 
+		&threads[1],             // argument to thread function 
 		0,                 // use default creation flags 
 		NULL);   // returns the thread identifier
 
@@ -244,13 +246,14 @@ int main()
 	while (player.cellPlayer <= (map.nCells + 1)) {
 		//PlayerWalk(&player, &map, monster);
 		//MonstersWalk(&player, &map, monster);
+		UpdateThreads(&player, monster, &map, threads, 1);
 
-		//WaitForSingleObject(hThreadPlayer, INFINITE);
-		//WaitForSingleObject(hThreadMonster, INFINITE);
-		UpdateThreads(&player, monster, &map, &threads, 1);
+		//WaitForSingleObject(hMutex, INFINITE);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
-		UpdateThreads(&player, monster, &map, &threads, 0);
+		//ReleaseMutex(hMutex);
+
+		UpdateThreads(&player, monster, &map, threads, 0);
 
 
 			if (monster[5].lifeMonster <= 0 && monster[6].lifeMonster <= 0 && monster[7].lifeMonster <= 0 && monster[8].lifeMonster <= 0) {
@@ -721,13 +724,11 @@ int main()
 	Esta Função faz com que os monstros do indice 5 a 7 andem pelo mapa de forma aleatória e sendo estes escolhidos de forma aleatória
 	*/
 	void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
-		time_t t;
-		srand((unsigned)time_t(&t));
+		srand(time(NULL));
 		int randMoveMonster = rand() % 6;
-		int randMonster =  rand() % 8;
+		int randMonster =  rand() % monster[0].nMonsters;
 		while ((randMonster < 5) && (randMonster > 8)) {
-			randMonster++;
-			randMonster = rand() % 8;
+			randMonster = rand() % monster[0].nMonsters;
 		}
 
 
@@ -867,8 +868,9 @@ int main()
 	Nesta Função o jogador batalha com um monstro ou varios caso exista algum monstro na sua cela
 	*/
 	void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
-		time_t t;
-		srand((unsigned)time_t(&t));
+		WaitForSingleObject(hMutex, INFINITE);
+
+		srand(time(NULL));
 
 		int randCriticPlayer = 0; // é sorteado um valor de ataque critico
 		int randAtkPlayer = 0; //O Player acerta o ataque ou falha
@@ -946,6 +948,8 @@ int main()
 				}
 			} // end while
 		} // end for
+
+		ReleaseMutex(hMutex);
 	}
 
 	/*
@@ -1050,16 +1054,18 @@ int main()
 	void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads, int controller) {
 
 		if (controller == 0) {
-			for (int i = 0; i < monster[0].nMonsters; i++) {
-
-				strcpy(pThreads->monsters[i].nameMosnter, monster[i].nameMosnter);
-				pThreads->monsters[i].cellMonster = monster[i].cellMonster;
-				pThreads->monsters[i].criticMonster = monster[i].criticMonster;
-				pThreads->monsters[i].damageMonster = monster[i].damageMonster;
-				pThreads->monsters[i].itemMonster = monster[i].itemMonster;
-				pThreads->monsters[i].lifeMonster = monster[i].lifeMonster;
-				pThreads->monsters[i].treasureMonster = monster[i].treasureMonster;
-				pThreads->monsters[i].nMonsters = monster[0].nMonsters;
+			for (int i = 0; i < monster[0].nMonsters; i++) { // apenas passar os monstros de 5 a 8
+				if (monster[0].nMonsters >= 5 && monster[0].nMonsters <= 8) {
+					strcpy(pThreads->monsters[i].nameMosnter, monster[i].nameMosnter);
+					pThreads->monsters[i].cellMonster = monster[i].cellMonster;
+					pThreads->monsters[i].criticMonster = monster[i].criticMonster;
+					pThreads->monsters[i].damageMonster = monster[i].damageMonster;
+					pThreads->monsters[i].itemMonster = monster[i].itemMonster;
+					pThreads->monsters[i].lifeMonster = monster[i].lifeMonster;
+					pThreads->monsters[i].treasureMonster = monster[i].treasureMonster;
+					pThreads->monsters[i].nMonsters = monster[0].nMonsters;
+				}
+				
 			}
 
 			for (int i = 0; i < pMap->nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
@@ -1077,15 +1083,16 @@ int main()
 		}
 		else if (controller == 1) {
 			for (int i = 0; i < monster[0].nMonsters; i++) {
-
-				strcpy(monster[i].nameMosnter, pThreads->monsters[i].nameMosnter);
-				monster[i].cellMonster = pThreads->monsters[i].cellMonster;
-				monster[i].criticMonster = pThreads->monsters[i].criticMonster;
-				monster[i].damageMonster = pThreads->monsters[i].damageMonster;
-				monster[i].itemMonster = pThreads->monsters[i].itemMonster;
-				monster[i].lifeMonster = pThreads->monsters[i].lifeMonster;
-				monster[i].treasureMonster = pThreads->monsters[i].treasureMonster;
-				monster[0].nMonsters = pThreads->monsters[i].nMonsters;
+				if (monster[0].nMonsters >= 5 && monster[0].nMonsters <= 8) {
+					strcpy(monster[i].nameMosnter, pThreads->monsters[i].nameMosnter);
+					monster[i].cellMonster = pThreads->monsters[i].cellMonster;
+					monster[i].criticMonster = pThreads->monsters[i].criticMonster;
+					monster[i].damageMonster = pThreads->monsters[i].damageMonster;
+					monster[i].itemMonster = pThreads->monsters[i].itemMonster;
+					monster[i].lifeMonster = pThreads->monsters[i].lifeMonster;
+					monster[i].treasureMonster = pThreads->monsters[i].treasureMonster;
+					monster[0].nMonsters = pThreads->monsters[i].nMonsters;
+				}
 			}
 
 			for (int i = 0; i < pMap->nCells; i++) { // para passar os dados do mapa para a estrutura de estruturas
@@ -1102,7 +1109,6 @@ int main()
 			*pPlayer = pThreads->Player;
 		}
 
-		//  add data from player
-		pThreads->Player = *pPlayer;
+		
 	}
 
