@@ -228,19 +228,18 @@ int main()
 
 
 	while (player.cellPlayer <= (map.nCells + 1)) {
-		//WaitForSingleObject(hThreadPlayer, INFINITE);
-		 //WaitForSingleObject(hThreadMonster, INFINITE);
 		UpdateThreads(&player, monster, &map, &threads, 1);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
-		UpdateThreads(&player, monster, &map, &threads, 0);
+		//UpdateThreads(&player, monster, &map, &threads, 0);
 	}
 		
 
 	//}
 
-
+	WaitForSingleObject(hThreadPlayer, INFINITE);
 	CloseHandle(hThreadPlayer);
+	WaitForSingleObject(hThreadMonster, INFINITE);
 	CloseHandle(hThreadMonster);
 
 	CloseHandle(hMutex);
@@ -405,6 +404,7 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 
 	int option;
 	//FunctionClear();
+	WaitForSingleObject(hMutexEcran, INFINITE);
 	printf("\n");
 	printf(" --------------------------------------------------------------------\n");
 	printf(" Para andar na aldeia seleciona uma das opções abaixo Soldado\n");
@@ -416,13 +416,15 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 	printf("%s", pMap->cell[pPlayer->cellPlayer].descriptionCell);
 	printf("\n");
 	printf("Escolhe a direção que queres soldado: \n");
+	ReleaseMutex(hMutexEcran);
 	scanf("%d", &option);
-	FunctionClear();
+
+	//FunctionClear();
 	switch (option)
 	{
 	case 1:
 		if (pMap->cell[pPlayer->cellPlayer].north == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else {
 			pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].north;
@@ -430,31 +432,31 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		break;
 	case 2:
 		if (pMap->cell[pPlayer->cellPlayer].south == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].south; }
 		break;
 	case 3:
 		if (pMap->cell[pPlayer->cellPlayer].west == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].west; }
 		break;
 	case 4:
 		if (pMap->cell[pPlayer->cellPlayer].east == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].east; }
 		break;
 	case 5:
 		if (pMap->cell[pPlayer->cellPlayer].up == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].up; }
 		break;
 	case 6:
 		if (pMap->cell[pPlayer->cellPlayer].down == -1) {
-			printf("Lamento mas nao podes atravesar paredes !!!");
+			PrintToConsole("Lamento mas nao podes atravesar paredes !!!");
 		}
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].down; }
 		break;
@@ -472,7 +474,6 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		printf("O valor introduzido é invalido!!! \n Insira novamente um numero de 1 a 8 \n");
 		break;
 	}
-
 }
 
 /*
@@ -481,7 +482,10 @@ Esta Função faz com que os monstros do indice 5 a 7 andem pelo mapa de forma ale
 void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
 	srand(time(NULL));
 	int randMoveMonster = rand() % 6;
-	int randMonster = 1;
+	int randMonster = rand() % monster[0].nMonsters;
+	while ((randMonster < 5) && (randMonster > 8)) {
+		randMonster = rand() % monster[0].nMonsters;
+	}
 
 
 	if ((strcmp(pPlayer->namePlayer, "SU") == 0) || (strcmp(pPlayer->namePlayer, "su") == 0) ||
@@ -490,63 +494,71 @@ void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monst
 		{
 		case 1:
 			if (pMap->cell[monster[randMonster].cellMonster].north == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].north;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 2:
 			if (pMap->cell[monster[randMonster].cellMonster].south == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].south;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 3:
 			if (pMap->cell[monster[randMonster].cellMonster].west == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].west;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 4:
 			if (pMap->cell[monster[randMonster].cellMonster].east == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
 				monster[randMonster].cellMonster = pMap->cell[monster[randMonster].cellMonster].east;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[randMonster].nameMosnter);
 				printf("Monstro foi para a sala: %d\n", monster[randMonster].cellMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			break;
 		case 5:
 			if (pMap->cell[monster[randMonster].cellMonster].up == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			break;
 		case 6:
 			if (pMap->cell[monster[randMonster].cellMonster].down == -1) {
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			else
 			{
-				printf("Monstro não se moveu!\n");
+				PrintToConsole("Monstro não se moveu!\n");
 			}
 			break;
 		default:
@@ -612,13 +624,15 @@ void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monst
 			break;
 		}
 	}
+	randMoveMonster++;
+	randMonster++;
 }
 
 /*
 Nesta Função o jogador batalha com um monstro ou varios caso exista algum monstro na sua cela
 */
 void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
-	WaitForSingleObject(hMutex, INFINITE);
+	//WaitForSingleObject(hMutex, INFINITE);
 
 	srand(time(NULL));
 
@@ -643,14 +657,16 @@ void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) 
 
 			if (randAtkPlayer > 3 && pPlayer->energyPlayer > 0) {// o jogador ataca
 				monster[i].lifeMonster = monster[i].lifeMonster - newatkPlayer;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[i].nameMosnter);//o jogador falha o ataque
 				printf("Dano tirado ao Monstro: %d\n", newatkPlayer);
 				printf("HP atual do Monstro: %d\n", monster[i].lifeMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			else {
 				if (pPlayer->energyPlayer > 0) {
-					printf("Parabens acabaste de falar completamente o ATAQUE!!!\n");
+					PrintToConsole("Parabens acabaste de falar completamente o ATAQUE!!!\n");
 				}
 				else {
 					//do nothing
@@ -665,21 +681,25 @@ void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) 
 
 			if (randAtkMonster > 3 && monster[i].lifeMonster > 0) { // o mosntro ataca
 				pPlayer->energyPlayer -= newatkMonster;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Soldado: %s\n", pPlayer->namePlayer);
 				printf("Dano tirado pelo Monstro: %d\n", newatkMonster);
 				printf("HP: %d\n", pPlayer->energyPlayer);
+				ReleaseMutex(hMutexEcran);
 			}
 			else {
 				if (monster[i].lifeMonster > 0) {// o monstro falhou o ataque
+					WaitForSingleObject(hMutexEcran, INFINITE);
 					printf("Para tua sorte Soldado o Monstro %s", monster[i].nameMosnter);
 					printf(" acabou de falhar o ataque\n");
+					ReleaseMutex(hMutexEcran);
 				}
 			}
 		} // end while
 	} // end for
 
-	ReleaseMutex(hMutex);
+	//ReleaseMutex(hMutex);
 }
 
 /*
@@ -702,11 +722,11 @@ void EndGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap)
 			PlayerWalk(pPlayer, pMap, monster);
 		}
 
-		if (monster[1].lifeMonster <= 0) { // fechar a thread do walk monster 
+		if (pPlayer->energyPlayer <= 0) {
+			WaitForSingleObject(ThreadMovePlayer, INFINITE);
+			CloseHandle(ThreadMovePlayer);
+			WaitForSingleObject(ThreadMoveMonsters, INFINITE);
 			CloseHandle(ThreadMoveMonsters);
-		}
-
-		if (pPlayer->energyPlayer < 0) {
 			FunctionClear();
 			printf("O Soldado %s", pPlayer->namePlayer);
 			printf(" foi um soldado exemplar, mas ficou demasiado convencido e acabou por se descuidar\n");
@@ -714,6 +734,11 @@ void EndGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap)
 			printf("R.I.P : &s", pPlayer->namePlayer);
 			main();
 		}
+
+		if (monster[1].lifeMonster <= 0) { // fechar a thread do walk monster
+			WaitForSingleObject(ThreadMoveMonsters, INFINITE);
+			CloseHandle(ThreadMoveMonsters);
+		}	
 }
 
 /*
