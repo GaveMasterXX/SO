@@ -228,19 +228,18 @@ int main()
 
 
 	while (player.cellPlayer <= (map.nCells + 1)) {
-		//WaitForSingleObject(hThreadPlayer, INFINITE);
-		 //WaitForSingleObject(hThreadMonster, INFINITE);
 		UpdateThreads(&player, monster, &map, &threads, 1);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
-		UpdateThreads(&player, monster, &map, &threads, 0);
+		//UpdateThreads(&player, monster, &map, &threads, 0);
 	}
 		
 
 	//}
 
-
+	WaitForSingleObject(hThreadPlayer, INFINITE);
 	CloseHandle(hThreadPlayer);
+	WaitForSingleObject(hThreadMonster, INFINITE);
 	CloseHandle(hThreadMonster);
 
 	CloseHandle(hMutex);
@@ -633,7 +632,7 @@ void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monst
 Nesta Função o jogador batalha com um monstro ou varios caso exista algum monstro na sua cela
 */
 void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) {
-	WaitForSingleObject(hMutex, INFINITE);
+	//WaitForSingleObject(hMutex, INFINITE);
 
 	srand(time(NULL));
 
@@ -658,14 +657,16 @@ void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) 
 
 			if (randAtkPlayer > 3 && pPlayer->energyPlayer > 0) {// o jogador ataca
 				monster[i].lifeMonster = monster[i].lifeMonster - newatkPlayer;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Monstro: %s\n", monster[i].nameMosnter);//o jogador falha o ataque
 				printf("Dano tirado ao Monstro: %d\n", newatkPlayer);
 				printf("HP atual do Monstro: %d\n", monster[i].lifeMonster);
+				ReleaseMutex(hMutexEcran);
 			}
 			else {
 				if (pPlayer->energyPlayer > 0) {
-					printf("Parabens acabaste de falar completamente o ATAQUE!!!\n");
+					PrintToConsole("Parabens acabaste de falar completamente o ATAQUE!!!\n");
 				}
 				else {
 					//do nothing
@@ -680,21 +681,25 @@ void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) 
 
 			if (randAtkMonster > 3 && monster[i].lifeMonster > 0) { // o mosntro ataca
 				pPlayer->energyPlayer -= newatkMonster;
+				WaitForSingleObject(hMutexEcran, INFINITE);
 				printf("\n");
 				printf("Soldado: %s\n", pPlayer->namePlayer);
 				printf("Dano tirado pelo Monstro: %d\n", newatkMonster);
 				printf("HP: %d\n", pPlayer->energyPlayer);
+				ReleaseMutex(hMutexEcran);
 			}
 			else {
 				if (monster[i].lifeMonster > 0) {// o monstro falhou o ataque
+					WaitForSingleObject(hMutexEcran, INFINITE);
 					printf("Para tua sorte Soldado o Monstro %s", monster[i].nameMosnter);
 					printf(" acabou de falhar o ataque\n");
+					ReleaseMutex(hMutexEcran);
 				}
 			}
 		} // end while
 	} // end for
 
-	ReleaseMutex(hMutex);
+	//ReleaseMutex(hMutex);
 }
 
 /*
@@ -717,11 +722,11 @@ void EndGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap)
 			PlayerWalk(pPlayer, pMap, monster);
 		}
 
-		if (monster[1].lifeMonster <= 0) { // fechar a thread do walk monster 
+		if (pPlayer->energyPlayer <= 0) {
+			WaitForSingleObject(ThreadMovePlayer, INFINITE);
+			CloseHandle(ThreadMovePlayer);
+			WaitForSingleObject(ThreadMoveMonsters, INFINITE);
 			CloseHandle(ThreadMoveMonsters);
-		}
-
-		if (pPlayer->energyPlayer < 0) {
 			FunctionClear();
 			printf("O Soldado %s", pPlayer->namePlayer);
 			printf(" foi um soldado exemplar, mas ficou demasiado convencido e acabou por se descuidar\n");
@@ -729,6 +734,11 @@ void EndGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap)
 			printf("R.I.P : &s", pPlayer->namePlayer);
 			main();
 		}
+
+		if (monster[1].lifeMonster <= 0) { // fechar a thread do walk monster
+			WaitForSingleObject(ThreadMoveMonsters, INFINITE);
+			CloseHandle(ThreadMoveMonsters);
+		}	
 }
 
 /*
