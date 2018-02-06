@@ -115,16 +115,16 @@ void PlayerWalk(Player *pPlayer, Map *pMap, Monster monster[]);/*~Função que cri
 void MonstersWalk(Player *pPlayer, Map *pMap, Monster monster[]);/*Função que permite o monstro se mover pelo mapa sozinho*/
 void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]);
 void EndGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap);
+void SaveGame(struct Player *pPlayer, struct Monster monster[]);
+void LoadGame(struct Player *pPlayer, struct Monster monster[]);
 void UpdateThreads(struct Player *pPlayer, struct Monster monster[], struct Map *pMap, struct Threads *pThreads, int controller);
 
 
 DWORD WINAPI ThreadMovePlayer(LPVOID lpParam)
 {
-	//WaitForSingleObject(hMutex, INFINITE);
 	do {
 		PlayerWalk(&((struct Threads *) lpParam)->Player, &((struct Threads *) lpParam)->map, ((struct Threads *) lpParam)->monsters);
 	} while (true);
-	//ReleaseMutex(hMutex);
 
 	return 0;
 }
@@ -193,7 +193,7 @@ int main()
 		break;
 
 	case 2:
-		//LoadGame(&player, monster);
+		LoadGame(&player, monster);
 		//PrintPlayer(&player);
 		break;
 
@@ -231,11 +231,8 @@ int main()
 		UpdateThreads(&player, monster, &map, &threads, 1);
 		Battle(&player, &map, monster);
 		EndGame(&player, monster, &map);
-		//UpdateThreads(&player, monster, &map, &threads, 0);
+		UpdateThreads(&player, monster, &map, &threads, 0);
 	}
-		
-
-	//}
 
 	WaitForSingleObject(hThreadPlayer, INFINITE);
 	CloseHandle(hThreadPlayer);
@@ -305,9 +302,9 @@ void InsertPlayer(struct Player *pPlayer) {
 	else {
 
 		// selecionar modo de jogo / dificuldade
-		pPlayer->energyPlayer = 200;
-		pPlayer->damage = 60;
-		pPlayer->critic = 20;
+		pPlayer->energyPlayer = 900;
+		pPlayer->damage = 300;
+		pPlayer->critic = 200;
 		pPlayer->itemPlayer = 0;
 		pPlayer->cellPlayer = 0;
 		pPlayer->treasurePlayer = 0;
@@ -461,7 +458,7 @@ void PlayerWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monster
 		else { pPlayer->cellPlayer = pMap->cell[pPlayer->cellPlayer].down; }
 		break;
 	case 7:
-		//SaveGame(pPlayer, monster);
+		SaveGame(pPlayer, monster);
 		printf("-----------------------------------\n");
 		printf("O Jogo foi guardado com sucesso\n");
 
@@ -624,8 +621,6 @@ void MonstersWalk(struct Player *pPlayer, struct Map *pMap, struct Monster monst
 			break;
 		}
 	}
-	randMoveMonster++;
-	randMonster++;
 }
 
 /*
@@ -644,7 +639,7 @@ void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) 
 	int randAtkMonster = 0; //O Monster acerta o ataque ou falha
 	int newatkMonster = 0; //Novo valor de ataque do monstro
 
-	for (int i = 0; i < monster[0].nMonsters; i++) {// enquanto houver monstros na sala o jodador vai lutando contra eles
+	  for (int i = 0; i < monster[0].nMonsters; i++) {// enquanto houver monstros na sala o jodador vai lutando contra eles
 
 		while (pPlayer->cellPlayer == monster[i].cellMonster && pPlayer->energyPlayer > 0 && 
 			monster[i].lifeMonster > 0 && monster[i].cellMonster == pPlayer->cellPlayer) {
@@ -698,7 +693,6 @@ void Battle(struct Player *pPlayer, struct Map *pMap, struct Monster monster[]) 
 			}
 		} // end while
 	} // end for
-
 	//ReleaseMutex(hMutex);
 }
 
@@ -735,10 +729,75 @@ void EndGame(struct Player *pPlayer, struct Monster monster[], struct Map *pMap)
 			main();
 		}
 
-		if (monster[1].lifeMonster <= 0) { // fechar a thread do walk monster
+		if (monster[1].lifeMonster <= 0 && strcmp(monster[1].nameMosnter,"ESCLETO 1") == 0 ) { // fechar a thread do walk monster
 			WaitForSingleObject(ThreadMoveMonsters, INFINITE);
 			CloseHandle(ThreadMoveMonsters);
-		}	
+		}
+
+		
+}
+
+/*
+Esta função guarda o jogo num ficheiro binário em que o nume é atribuido pelo utilizador
+*/
+void SaveGame(struct Player *pPlayer, struct Monster monster[]) {
+	struct SaveGame save;
+	FILE *f;
+	char fileName[MAX_FILENAME];
+	printf("Insere um nome para o ficheiro: \n");
+	scanf("%s", fileName);
+	//fgets(fileName, MAX_NAME, stdin);
+	fileName[strlen(fileName) - 1] = '\0';
+	strcat(fileName, ".bin");
+
+	f = fopen(fileName, "wb");
+
+	fwrite(pPlayer, sizeof(struct Player), 1, f);
+	for (int i = 0; i < monster[0].nMonsters; i++) {
+		save.saveMonster.cellMonster = monster[i].cellMonster;
+		save.saveMonster.criticMonster = monster[i].criticMonster;
+		save.saveMonster.damageMonster = monster[i].damageMonster;
+		save.saveMonster.itemMonster = monster[i].itemMonster;
+		save.saveMonster.lifeMonster = monster[i].lifeMonster;
+		strcpy(save.saveMonster.nameMosnter, monster[i].nameMosnter);
+		save.saveMonster.treasureMonster = monster[i].treasureMonster;
+		fwrite(&save, sizeof(struct SaveGame), 1, f);
+	}
+	fclose(f);
+}
+
+/*
+Esta função carrega o jogo de um ficheiro binário, o utilizador pode escolher qual é o save que quer carregar
+*/
+void LoadGame(struct Player *pPlayer, struct Monster monster[]) {
+	struct SaveGame save;
+	FILE *f;
+	char fileName[MAX_FILENAME];
+	printf("Insere o nome do savefile que pretendes continuar: \n");
+	//fgets(fileName, MAX_NAME, stdin);
+	scanf("%s", fileName);
+	strcat(fileName, ".bin");
+
+	f = fopen(fileName, "rb");
+
+	if (f == NULL) {
+		printf("Não existe nenhum jogo com esse nome!");
+		LoadGame(pPlayer, monster);
+	}
+	else {
+		fread(pPlayer, sizeof(struct Player), 1, f);
+		for (int i = 0; i < monster[0].nMonsters; i++) {
+			fread(&save, sizeof(struct SaveGame), 1, f);
+			monster[i].cellMonster = save.saveMonster.cellMonster;
+			monster[i].criticMonster = save.saveMonster.criticMonster;
+			monster[i].damageMonster = save.saveMonster.damageMonster;
+			monster[i].itemMonster = save.saveMonster.itemMonster;
+			monster[i].lifeMonster = save.saveMonster.lifeMonster;
+			strcpy(monster[i].nameMosnter, save.saveMonster.nameMosnter);
+			monster[i].treasureMonster = save.saveMonster.treasureMonster;
+		}
+		fclose(f);
+	}
 }
 
 /*
